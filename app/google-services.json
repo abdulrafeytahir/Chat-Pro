@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1068979856923",
+    "firebase_url": "https://chat-pro-35d90.firebaseio.com",
+    "project_id": "chat-pro-35d90",
+    "storage_bucket": "chat-pro-35d90.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1068979856923:android:dc2fbf2b86bd62be",
+        "android_client_info": {
+          "package_name": "com.wartech.chatpro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1068979856923-s7n8cj6ggre7i12f6j4pravc37dhiuad.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wartech.chatpro",
+            "certificate_hash": "588ce02174b345e0b09b44e70406f3b9b4ab3858"
+          }
+        },
+        {
+          "client_id": "1068979856923-qccgiu56u0cjnvg6ihea8ksb0icgcosv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAw1dcoD0yq-ia4H_gwA2TnH8bbVW6qhwM"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1068979856923-qccgiu56u0cjnvg6ihea8ksb0icgcosv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

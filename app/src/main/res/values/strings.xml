@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Chat Pro</string>
+    <string name="send_button_label">Send</string>
+    <string name="chats_tab">Chats</string>
+    <string name="contacts_tab">Contacts</string>
+    <string name="phone_number">Phone Number:</string>
+    <string name="name">Name:</string>
+    <string name="time">time</string>
+    <string name="settings">Settings</string>
+</resources>
