@@ -27,6 +27,11 @@
         <activity
             android:name=".SettingsActivity"
             android:label="Settings" />
+
+        <service
+            android:name=".sync.ChatReminderFirebaseJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>

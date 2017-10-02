@@ -25,13 +25,17 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.wartech.chatpro.sync.ReminderUtilities;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
-public class    ChatActivity extends AppCompatActivity {
+
+public class ChatActivity extends AppCompatActivity {
 
     private static final String TAG = "Chats";
 
@@ -60,7 +64,13 @@ public class    ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
 
         Intent intent = getIntent();
-        contactPhoneNumber = intent.getStringExtra("phoneNumber");
+
+        if(intent.hasExtra("phoneNumber")) {
+            contactPhoneNumber = intent.getStringExtra("phoneNumber");
+        } else if (intent.hasExtra("notification phone number")) {
+            contactPhoneNumber = intent.getStringExtra("notification phone number");
+        }
+
 
         // Get database references from Firebase
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
@@ -146,9 +156,10 @@ public class    ChatActivity extends AppCompatActivity {
                     mDatabaseRef.child("users")
                             .child(contactPhoneNumber).child("contacts")
                             .child(mUserPhoneNumber).child("chat_id").setValue(mChatId);
+
                 }
 
-                getTime();
+                mTime = getTime();
                 // setup a friendly message object and push it to the DB
                 ChatMessage friendlyMessage = new ChatMessage(mMessageEditText.getText().toString(),
                         mUsername, null, mTime);
@@ -156,7 +167,7 @@ public class    ChatActivity extends AppCompatActivity {
                 // Clear input box
                 mMessageEditText.setText("");
 
-                if(mChildEventListener == null) {
+                if (mChildEventListener == null) {
                     attachMessageReadListener();
                 }
 
@@ -170,11 +181,8 @@ public class    ChatActivity extends AppCompatActivity {
 
     }
 
-    public void getTime() {
-//        Date currentTime = Calendar.getInstance().getTime();
-
-//        Time now = new Time();
-//        now.setToNow();
+    public String getTime() {
+        return DateFormat.getDateTimeInstance().format(new Date());
     }
 
     private void getUserName() {
@@ -282,10 +290,12 @@ public class    ChatActivity extends AppCompatActivity {
         // remove up the listeners if the activity is paused
         super.onPause();
         detatchMessageReadListener();
+        ReminderUtilities.scheduleChatReminder(getBaseContext());
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        ReminderUtilities.haltJob();
     }
 }

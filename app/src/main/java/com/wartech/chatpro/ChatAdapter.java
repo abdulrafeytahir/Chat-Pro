@@ -13,6 +13,8 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.squareup.picasso.Picasso;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import static com.wartech.chatpro.ChatActivity.mUsername;
@@ -49,25 +51,16 @@ public class ChatAdapter extends ArrayAdapter<ChatMessage> {
                 Picasso.with(photoImageView.getContext())
                         .load(message.getPhotoUrl())
                         .into(photoImageView);
-//                Glide.with(photoImageView.getContext())
-//                        .load(message.getPhotoUrl())
-//                        .into(photoImageView);
+
             } else {
                 messageTextView.setVisibility(View.VISIBLE);
                 photoImageView.setVisibility(View.GONE);
                 messageTextView.setText(message.getText());
             }
             authorTextView.setText(message.getSenderName());
-            timeTextView.setText(R.string.time);
 
-            LinearLayout layout = convertView.findViewById(R.id.messagePositionLinearLayout);
+            timeTextView.setText(message.getTime());
 
-            // if message is not sent by the user, align right otherwise align left
-            if(!mUsername.equals(message.getSenderName())) {
-                layout.setGravity(Gravity.END);
-            } else {
-                //layout.setGravity(Gravity.START);
-            }
         }
 
         return convertView;

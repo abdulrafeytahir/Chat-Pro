@@ -21,31 +21,19 @@ public class ChatMessage {
         return text;
     }
 
-    public void setText(String text) {
-        this.text = text;
-    }
 
     public String getSenderName() {
         return senderName;
     }
 
-    public void setSenderName(String senderName) {
-        this.senderName = senderName;
-    }
 
     public String getPhotoUrl() {
         return photoUrl;
     }
 
-    public void setPhotoUrl(String photoUrl) {
-        this.photoUrl = photoUrl;
-    }
 
     public String getTime() {
         return time;
     }
 
-    public void setTime(String time) {
-        this.time = time;
-    }
 }

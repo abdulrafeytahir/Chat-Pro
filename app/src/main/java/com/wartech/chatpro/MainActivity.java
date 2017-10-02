@@ -26,12 +26,14 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.wartech.chatpro.sync.ReminderUtilities;
 
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
 public class MainActivity extends AppCompatActivity {
 
     private DatabaseReference mDatabaseRef;
+    private ChildEventListener mChildeEventListener;
 
     private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 1;
 
@@ -45,60 +47,67 @@ public class MainActivity extends AppCompatActivity {
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
 
         loadMainUI();
+
+        ReminderUtilities.scheduleChatReminder(this);
     }
 
     // implementing childEventListener callback methods to update database
     private void attachDatabaseReadListener() {
 
-        mDatabaseRef.child("users").addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                final String phoneNumber = dataSnapshot.getKey();
+        if (mChildeEventListener == null) {
+            mChildeEventListener = new ChildEventListener() {
+                @Override
+                public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                    final String phoneNumber = dataSnapshot.getKey();
 
-                if (!phoneNumber.equals(mUserPhoneNumber)) {
-                    boolean checkIfNumberExists = ifContactNumberExists(MainActivity.this, phoneNumber);
-                    if (checkIfNumberExists) {
-                        mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
-                                .child(phoneNumber).child("chat_id").addValueEventListener(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(DataSnapshot dataSnapshot) {
-                                String value = dataSnapshot.getValue(String.class);
-                                if (TextUtils.isEmpty(value)) {
-                                    mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
-                                            .child(phoneNumber).child("chat_id").setValue("");
+                    if (!phoneNumber.equals(mUserPhoneNumber)) {
+                        boolean checkIfNumberExists = ifContactNumberExists(MainActivity.this, phoneNumber);
+                        if (checkIfNumberExists) {
+                            mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
+                                    .child(phoneNumber).child("chat_id").addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(DataSnapshot dataSnapshot) {
+                                    String value = dataSnapshot.getValue(String.class);
+                                    if (TextUtils.isEmpty(value)) {
+
+                                        mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
+                                                .child(phoneNumber).child("chat_id").setValue("");
+                                    }
                                 }
-                            }
 
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
+                                @Override
+                                public void onCancelled(DatabaseError databaseError) {
 
-                            }
+                                }
 
-                        });
+                            });
+                        }
                     }
                 }
-            }
 
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                @Override
+                public void onChildChanged(DataSnapshot dataSnapshot, String s) {
 
-            }
+                }
 
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                @Override
+                public void onChildRemoved(DataSnapshot dataSnapshot) {
 
-            }
+                }
 
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+                @Override
+                public void onChildMoved(DataSnapshot dataSnapshot, String s) {
 
-            }
+                }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
 
-            }
-        });
+                }
+            };
+            mDatabaseRef.child("users").addChildEventListener(mChildeEventListener);
+        }
+
     }
 
     public boolean ifContactNumberExists(Context context, String number) {
@@ -119,8 +128,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void loadMainUI() {
-        requestContactsPermission();
-
         // Get the ViewPager and set its PagerAdapter so that it can display fragments
         ViewPager viewPager = findViewById(R.id.view_pager);
         TabAdapter adapter = new TabAdapter(MainActivity.this, getSupportFragmentManager());
@@ -129,6 +136,9 @@ public class MainActivity extends AppCompatActivity {
         // attach viewPager to TabLayout
         TabLayout tabLayout = findViewById(R.id.sliding_tabs);
         tabLayout.setupWithViewPager(viewPager);
+
+        requestContactsPermission();
+
     }
 
     public void requestContactsPermission() {
@@ -136,9 +146,9 @@ public class MainActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.READ_CONTACTS)
                 != PackageManager.PERMISSION_GRANTED) {
 
-                ActivityCompat.requestPermissions(this,
-                        new String[]{android.Manifest.permission.READ_CONTACTS},
-                        MY_PERMISSIONS_REQUEST_READ_CONTACTS);
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.READ_CONTACTS},
+                    MY_PERMISSIONS_REQUEST_READ_CONTACTS);
 
 
         } else {
@@ -155,8 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, get relevant
-                    // contacts from phone book.
+                    // permission was granted, get relevant contacts from phone book.
                     attachDatabaseReadListener();
 
                 }
@@ -224,5 +233,15 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
         finishAffinity();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mChildeEventListener != null) {
+            mDatabaseRef.child("users").removeEventListener(mChildeEventListener);
+            mChildeEventListener = null;
+        }
+
     }
 }

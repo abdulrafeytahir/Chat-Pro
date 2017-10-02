@@ -83,7 +83,8 @@ public class ChatFragment extends Fragment {
 
     public void attachDatabaseReadListener() {
         contactAdapter.clear();
-        mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts").addChildEventListener(new ChildEventListener() {
+        mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
+                .addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 // check every contact number of current user

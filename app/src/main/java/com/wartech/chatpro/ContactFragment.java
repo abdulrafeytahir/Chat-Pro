@@ -75,14 +75,13 @@ public class ContactFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        // clean up everything on signout
         detatchDatabaseReadListener();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // attach DB read listener on resume
+        // attach DB read listener on create
         attachDatabaseReadListener();
     }
 
@@ -138,10 +137,10 @@ public class ContactFragment extends Fragment {
                 });
     }
 
-    private void detatchDatabaseReadListener() {
-        // removing database read listener
+    public void detatchDatabaseReadListener() {
         if (mChildEventListener != null) {
-            mDatabaseRef.child("users").removeEventListener(mChildEventListener);
+            mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
+                    .removeEventListener(mChildEventListener);
             mChildEventListener = null;
         }
     }
