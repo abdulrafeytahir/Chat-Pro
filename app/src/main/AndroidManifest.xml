@@ -32,6 +32,12 @@
             android:name=".sync.ChatReminderFirebaseJobService"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <provider
+            android:name=".data.ChatProvider"
+            android:authorities="com.wartech.chatpro"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

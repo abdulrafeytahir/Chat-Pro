@@ -1,6 +1,8 @@
 package com.wartech.chatpro;
 
+import android.content.ContentUris;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
@@ -17,6 +19,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.wartech.chatpro.data.ChatContract;
 
 import java.util.ArrayList;
 
@@ -34,7 +37,7 @@ public class ContactFragment extends Fragment {
     private ListView listView;
     private ContactAdapter contactAdapter;
 
-    private final String TAG = "Contacts";
+    private final String TAG = "chatpro";
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -59,8 +62,9 @@ public class ContactFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent intent = new Intent(getContext(), DisplayContactDetailsActivity.class);
-                intent.putExtra("phoneNumber", contactAdapter.getItem(i).getPhoneNumber());
-                intent.putExtra("name", contactAdapter.getItem(i).getName());
+                long number = Long.getLong(contactAdapter.getItem(i).getPhoneNumber());
+                Uri contactUri = ContentUris.withAppendedId(ChatContract.Contacts.CONTENT_URI, number);
+                intent.setData(contactUri);
                 startActivity(intent);
             }
         });
@@ -118,7 +122,6 @@ public class ContactFragment extends Fragment {
     }
 
     public void getContactUserName(final String phoneNumber) {
-
         mDatabaseRef.child("users").child(phoneNumber).child("user_details").child("username")
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -144,5 +147,4 @@ public class ContactFragment extends Fragment {
             mChildEventListener = null;
         }
     }
-
 }

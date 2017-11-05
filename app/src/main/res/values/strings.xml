@@ -7,5 +7,6 @@
     <string name="name">Name:</string>
     <string name="time">time</string>
     <string name="settings">Settings</string>
+    <string name="user_detais">User Details</string>
     <string name="preference_file_key"></string>
 </resources>

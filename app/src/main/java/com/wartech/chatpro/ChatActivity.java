@@ -290,12 +290,12 @@ public class ChatActivity extends AppCompatActivity {
         // remove up the listeners if the activity is paused
         super.onPause();
         detatchMessageReadListener();
-        ReminderUtilities.scheduleChatReminder(getBaseContext());
+     //  ReminderUtilities.scheduleChatReminder(ChatActivity.this);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        ReminderUtilities.haltJob();
+       // ReminderUtilities.haltJob();
     }
 }

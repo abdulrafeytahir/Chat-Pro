@@ -1,9 +1,12 @@
 package com.wartech.chatpro;
 
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -25,10 +28,15 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.wartech.chatpro.data.ChatContract;
 
 import java.util.Arrays;
 
+import static android.R.attr.id;
 import static android.R.attr.value;
+import static com.wartech.chatpro.data.ChatContract.LAST_SEEN;
+import static com.wartech.chatpro.data.ChatContract.USERS;
+
 
 public class SignupActivity extends AppCompatActivity {
 
@@ -89,11 +97,25 @@ public class SignupActivity extends AppCompatActivity {
             Toast.makeText(SignupActivity.this, "Please enter username", Toast.LENGTH_SHORT).show();
         } else {
             // otherwise set username in the databaase
-            mDatabaseRef.child("users").child(mUserPhoneNumber).child("user_details")
-                    .child("username").setValue(username);
+            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
+                    .child(ChatContract.UserDetails.COLUMN_USERNAME).setValue(username);
 
-            mDatabaseRef.child("users").child(mUserPhoneNumber).child("user_details")
-                    .child("last_seen").setValue("Active");
+            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
+                    .child(LAST_SEEN).setValue("Active");
+
+            // Create a new map of values, where column names are the keys
+            ContentValues values = new ContentValues();
+            values.put(ChatContract.UserDetails.COLUMN_PHONE_NUMBER, mUserPhoneNumber);
+            values.put(ChatContract.UserDetails.COLUMN_USERNAME, username);
+
+            // Insert the new row, returning the primary key value of the new row
+            Uri newUri = getContentResolver().insert(ChatContract.UserDetails.CONTENT_URI, values);
+            Log.d(TAG, "Uri: " + newUri);
+            if (newUri == null) {
+                Toast.makeText(this, "error in saving user data", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "user data saved", Toast.LENGTH_SHORT).show();
+            }
 
             // move to main activity
             Intent intent = new Intent(SignupActivity.this, MainActivity.class);
@@ -105,8 +127,8 @@ public class SignupActivity extends AppCompatActivity {
      * Method to check user details
      **/
     public void checkUserDetails() {
-        mDatabaseRef.child("users").child(mUserPhoneNumber).child("user_details")
-                .child("username").addListenerForSingleValueEvent(new ValueEventListener() {
+        mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
+                .child(ChatContract.UserDetails.COLUMN_USERNAME).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String value = dataSnapshot.getValue(String.class);
@@ -125,8 +147,8 @@ public class SignupActivity extends AppCompatActivity {
                     });
                 } else {
                     // if user is logged in, set status to Active
-                    mDatabaseRef.child("users").child(mUserPhoneNumber).child("user_details")
-                            .child("last_seen").setValue("Active");
+                    mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
+                            .child(LAST_SEEN).setValue("Active");
 
                     // move to main Activity
                     Intent intent = new Intent(SignupActivity.this, MainActivity.class);
@@ -208,7 +230,7 @@ public class SignupActivity extends AppCompatActivity {
                 } else {
 
                     Toast.makeText(SignupActivity.this, "Your app is fully updated", Toast.LENGTH_SHORT).show();
-                    // createAlertDialog();
+                    createAlertDialog();
                 }
             }
 
