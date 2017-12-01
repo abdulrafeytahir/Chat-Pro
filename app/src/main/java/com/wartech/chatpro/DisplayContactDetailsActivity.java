@@ -1,6 +1,5 @@
 package com.wartech.chatpro;
 
-import android.app.LoaderManager;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
@@ -8,22 +7,23 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.wartech.chatpro.data.ChatContract;
+import com.squareup.picasso.Picasso;
 
-import java.net.URI;
+import de.hdodenhof.circleimageview.CircleImageView;
 
-import static android.R.attr.data;
-import static com.wartech.chatpro.R.id.contactName;
-import static com.wartech.chatpro.R.id.contactNumber;
+import static android.R.attr.phoneNumber;
+import static com.wartech.chatpro.ChatProConstants.PHONE_NUMBER;
+import static com.wartech.chatpro.ChatProConstants.PROFILE_PIC_URI;
+import static com.wartech.chatpro.ChatProConstants.STATUS;
+import static com.wartech.chatpro.ChatProConstants.USERNAME;
 
-public class DisplayContactDetailsActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
-    private Uri mUri;
-    TextView contactName;
-    TextView contactNumber;
-    private int DISPLAY_CONTACT_LOADER_ID = 1;
+public class DisplayContactDetailsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,39 +31,30 @@ public class DisplayContactDetailsActivity extends AppCompatActivity implements 
         setContentView(R.layout.activity_display_contact_details);
 
         Intent intent = getIntent();
-        mUri = intent.getData();
+        String username = intent.getStringExtra(USERNAME);
+        String phoneNumber = intent.getStringExtra(PHONE_NUMBER);
+        String imageURL = intent.getStringExtra(PROFILE_PIC_URI);
+        String status = intent.getStringExtra(STATUS);
 
-        if(mUri != null) {
-            // calling initLoader method on Loader Manager
-            getLoaderManager().initLoader(DISPLAY_CONTACT_LOADER_ID, null, this);
+        TextView nameTextView = findViewById(R.id.user_name);
+        nameTextView.setText(username);
+
+        TextView statusTextView = findViewById(R.id.status);
+        statusTextView.setText(status);
+
+        TextView phoneTextView = findViewById(R.id.phone_number);
+        phoneTextView.setText(phoneNumber);
+
+        if (!TextUtils.isEmpty(imageURL)) {
+            ImageView imageView = findViewById(R.id.user_profile_pic);
+            Picasso.with(imageView.getContext())
+                    .load(imageURL)
+                    .into(imageView);
+
+
         }
 
     }
 
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
 
-        String[] projection = {
-                ChatContract.UserDetails.COLUMN_PHONE_NUMBER,
-                ChatContract.UserDetails.COLUMN_USERNAME
-        };
-
-        return new CursorLoader(this, mUri, projection, null, null, null);
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        if (data.moveToFirst()) {
-            contactName = findViewById(R.id.contactName);
-            contactNumber = findViewById(R.id.contactNumber);
-            contactName.setText(data.getString(data.getColumnIndex(ChatContract.UserDetails.COLUMN_USERNAME)));
-            contactNumber.setText(data.getString(data.getColumnIndex(ChatContract.UserDetails.COLUMN_PHONE_NUMBER)));
-        }
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-        contactName.setText("");
-        contactNumber.setText("");
-    }
 }

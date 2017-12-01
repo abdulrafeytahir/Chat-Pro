@@ -28,20 +28,22 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
     // Support Li   braries
-    compile 'com.android.support:design:26.0.1'
-    compile 'com.android.support:appcompat-v7:26.0.1'
 
     // Firebase dependencies
+
+    // Picasso dependency
+
+
+    compile 'com.android.support:design:26.0.1'
+    compile 'com.android.support:appcompat-v7:26.0.1'
     compile 'com.firebase:firebase-jobdispatcher:0.8.2'
     compile 'com.google.firebase:firebase-database:11.0.4'
     compile 'com.google.firebase:firebase-auth:11.0.4'
     compile 'com.google.firebase:firebase-storage:11.0.4'
     compile 'com.firebaseui:firebase-ui:2.3.0'
     compile 'com.firebaseui:firebase-ui-storage:0.6.0'
-
-    // Picasso dependency
     compile 'com.squareup.picasso:picasso:2.5.2'
-
-
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile 'de.hdodenhof:circleimageview:2.1.0'
 }
 apply plugin: 'com.google.gms.google-services'

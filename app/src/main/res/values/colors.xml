@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#2AB1E0</color>
-    <color name="colorPrimaryDark">#1E88E5</color>
-    <color name="colorAccent">#2AB1E0</color>
+    <color name="colorPrimary">#009688</color>
+    <color name="colorPrimaryDark">#00796B</color>
+    <color name="colorAccent">#536DFE</color>
     <color name="colorTitle">#ffffff</color>
     <color name="accountBackground">#9E9E9E</color>
+    <color name="lightPrimary">#B2DFDB</color>
     <color name="selectedTextColor">#CFD8DC</color>
+    <color name="black">#000000</color>
 </resources>

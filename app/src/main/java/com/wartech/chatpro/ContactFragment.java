@@ -1,17 +1,18 @@
 package com.wartech.chatpro;
 
-import android.content.ContentUris;
 import android.content.Intent;
-import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
-import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -19,28 +20,36 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.wartech.chatpro.data.ChatContract;
 
 import java.util.ArrayList;
 
+import static android.app.Activity.RESULT_OK;
+import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.PHONE_NUMBER;
+import static com.wartech.chatpro.ChatProConstants.PROFILE_PIC_URI;
+import static com.wartech.chatpro.ChatProConstants.STATUS;
+import static com.wartech.chatpro.ChatProConstants.USERNAME;
+import static com.wartech.chatpro.ChatProConstants.USERS;
+import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
 public class ContactFragment extends Fragment {
 
     private DatabaseReference mDatabaseRef;
+    private ListView listView;
+    private ContactAdapter contactAdapter;
     private ChildEventListener mChildEventListener;
+    private static final int RC_PICK_CONTACT = 999;
 
     public ContactFragment() {
         // empty public constructor
     }
 
-    private ListView listView;
-    private ContactAdapter contactAdapter;
 
     private final String TAG = "chatpro";
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(final LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         // initialize fragment rootView
@@ -49,9 +58,13 @@ public class ContactFragment extends Fragment {
         // Initialize Firebase components
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
 
-        // attach contacts adapter to listview
+        // initializing contacts array list
         ArrayList<Contact> contacts = new ArrayList<>();
+
+        // initializing contact adapter and assigning contacts list to it
         contactAdapter = new ContactAdapter(getContext(), R.layout.item_contact, contacts);
+
+        // setting up listview
         listView = rootView.findViewById(R.id.contactListView);
 
         // attach contacts adapter to list view to display contacts
@@ -62,24 +75,27 @@ public class ContactFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent intent = new Intent(getContext(), DisplayContactDetailsActivity.class);
-                long number = Long.getLong(contactAdapter.getItem(i).getPhoneNumber());
-                Uri contactUri = ContentUris.withAppendedId(ChatContract.Contacts.CONTENT_URI, number);
-                intent.setData(contactUri);
+                intent.putExtra(USERNAME, contactAdapter.getItem(i).getName());
+                intent.putExtra(PHONE_NUMBER, contactAdapter.getItem(i).getPhoneNumber());
+                intent.putExtra(PROFILE_PIC_URI, contactAdapter.getItem(i).getImageURL());
+                intent.putExtra(STATUS, contactAdapter.getItem(i).getmStatus());
                 startActivity(intent);
             }
         });
 
         // initialize floating action button
-        FloatingActionButton fab = rootView.findViewById(R.id.chatActionButton);
+        FloatingActionButton fab = rootView.findViewById(R.id.contactActionButton);
         fab.setVisibility(View.VISIBLE);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(Intent.ACTION_INSERT);
+                intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
+                startActivityForResult(intent, RC_PICK_CONTACT);
+            }
+        });
 
         return rootView;
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        detatchDatabaseReadListener();
     }
 
     @Override
@@ -87,6 +103,17 @@ public class ContactFragment extends Fragment {
         super.onResume();
         // attach DB read listener on create
         attachDatabaseReadListener();
+
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (mChildEventListener != null) {
+            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS)
+                    .removeEventListener(mChildEventListener);
+            mChildEventListener = null;
+        }
     }
 
     // implementing childEventListener callback methods to update database
@@ -97,40 +124,48 @@ public class ContactFragment extends Fragment {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     String phoneNumber = dataSnapshot.getKey();
-                    getContactUserName(phoneNumber);
+                    getContactUserDetails(phoneNumber);
+
                 }
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
                 }
 
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
+
                 }
 
                 @Override
                 public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
+
                 }
             };
-            mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
-                    .addChildEventListener(mChildEventListener);
+
+            DatabaseReference reference = mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS);
+            reference.keepSynced(true);
+            reference.addChildEventListener(mChildEventListener);
         }
     }
 
-    public void getContactUserName(final String phoneNumber) {
-        mDatabaseRef.child("users").child(phoneNumber).child("user_details").child("username")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
+    public void getContactUserDetails(final String phoneNumber) {
+        DatabaseReference reference = mDatabaseRef.child(USERS).child(phoneNumber).child(USER_DETAILS);
+        reference.keepSynced(true);
+        reference.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
-                        String username = dataSnapshot.getValue(String.class);
-                        if (!TextUtils.isEmpty(username)) {
-                            Contact contact = new Contact(username, phoneNumber, null);
-                            contactAdapter.add(contact);
-                        }
+                        String username = dataSnapshot.child(USERNAME).getValue(String.class);
+                        String imageURL = dataSnapshot.child(PROFILE_PIC_URI).getValue(String.class);
+                        String status = dataSnapshot.child(STATUS).getValue(String.class);
+                        Contact contact = new Contact(username, phoneNumber, imageURL, status);
+                        contactAdapter.add(contact);
                     }
 
                     @Override
@@ -138,13 +173,15 @@ public class ContactFragment extends Fragment {
 
                     }
                 });
+
     }
 
-    public void detatchDatabaseReadListener() {
-        if (mChildEventListener != null) {
-            mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
-                    .removeEventListener(mChildEventListener);
-            mChildEventListener = null;
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == RC_PICK_CONTACT && resultCode == RESULT_OK) {
+            Toast.makeText(getContext(), "Contact Added Successfully!", Toast.LENGTH_SHORT).show();
         }
     }
 }

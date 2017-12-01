@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,12 +20,20 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 
+import static com.wartech.chatpro.ChatProConstants.CHATS;
+import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
+import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.PROFILE_PIC_URI;
+import static com.wartech.chatpro.ChatProConstants.STATUS;
+import static com.wartech.chatpro.ChatProConstants.USERNAME;
+import static com.wartech.chatpro.ChatProConstants.USERS;
+import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
 public class ChatFragment extends Fragment {
 
     private DatabaseReference mDatabaseRef;
-
+    private ChildEventListener mChildEventListener;
     private ListView listView;
     private ContactAdapter contactAdapter;
 
@@ -75,7 +82,7 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        // attach database listener to populate chat fragment with a list of active chats
+        // attach DB read listener on create
         attachDatabaseReadListener();
 
         return rootView;
@@ -83,50 +90,70 @@ public class ChatFragment extends Fragment {
 
     public void attachDatabaseReadListener() {
         contactAdapter.clear();
-        mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts")
-                .addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                // check every contact number of current user
-                final String contactNumber = dataSnapshot.getKey();
-                if (!TextUtils.isEmpty(contactNumber)) {
-                    Log.d(TAG, "current contact number is: " + contactNumber);
-                    // implement listener to check if chat_id is set or not
-                    mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts").child(contactNumber)
-                            .child("chat_id").addValueEventListener(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(DataSnapshot dataSnapshot) {
-                            String chatID = dataSnapshot.getValue(String.class);
-                            if (!TextUtils.isEmpty(chatID)) {
-                                Log.d(TAG, "for contact number: " + contactNumber + " chat id is: " + chatID);
+        DatabaseReference reference = mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS);
+        reference.keepSynced(true);
+        reference.addChildEventListener(new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                        if (dataSnapshot.exists()) {
+                            final String contactNumber = dataSnapshot.getKey();
+                            if (!TextUtils.isEmpty(contactNumber)) {
+                                DatabaseReference ref = mDatabaseRef.child(USERS).child(mUserPhoneNumber)
+                                        .child(CONTACTS).child(contactNumber).child(CHAT_ID);
+                                ref.keepSynced(true);
+                                ref.addValueEventListener(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        String chatID = dataSnapshot.getValue(String.class);
+                                        if (!TextUtils.isEmpty(chatID)) {
+                                            getContactUserDetails(contactNumber, chatID);
+                                        }
+                                    }
 
-                                // check if chat is initiated, then add contact to adapter
-                                getContactUserName(contactNumber);
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) {
 
+                                    }
+                                });
                             }
                         }
+                    }
 
-                        @Override
-                        public void onCancelled(DatabaseError databaseError) {
+                    @Override
+                    public void onChildChanged(DataSnapshot dataSnapshot, String s) {
 
-                        }
-                    });
-                }
-            }
+                    }
 
+                    @Override
+                    public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+                    }
+
+                    @Override
+                    public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
+    }
+
+    public void getContactUserDetails(final String phoneNumber, final String chatID) {
+        DatabaseReference reference = mDatabaseRef.child(USERS).child(phoneNumber).child(USER_DETAILS);
+        reference.keepSynced(true);
+        reference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String username = dataSnapshot.child(USERNAME).getValue(String.class);
+                String imageURL = dataSnapshot.child(PROFILE_PIC_URI).getValue(String.class);
+                String status = dataSnapshot.child(STATUS).getValue(String.class);
 
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
+                String chat = getChatMessage(chatID);
+                Contact contact = new Contact(username, phoneNumber, imageURL, status);
+                contactAdapter.add(contact);
             }
 
             @Override
@@ -137,36 +164,39 @@ public class ChatFragment extends Fragment {
 
     }
 
-    public void getContactUserName(final String phoneNumber) {
-
-        mDatabaseRef.child("users").child(phoneNumber).child("user_details").child("username")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        String username = dataSnapshot.getValue(String.class);
-                        if (!TextUtils.isEmpty(username)) {
-                            Log.d(TAG, "username is: " + username);
-                            Contact contact = new Contact(username, phoneNumber, null);
-                            contactAdapter.add(contact);
-                        }
+    private String getChatMessage(String chatID) {
+        final String[] latestMessage = {null};
+        DatabaseReference reference = mDatabaseRef.child(CHATS).child(chatID);
+        reference.keepSynced(true);
+        reference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for(DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    ChatMessage chatMessage = snapshot.getValue(ChatMessage.class);
+                    latestMessage[0] = chatMessage.getText();
+                    if(!TextUtils.isEmpty(latestMessage[0])) {
+                        break;
                     }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
+                }
+            }
 
-                    }
-                });
-    }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
-
-    @Override
-    public void onPause() {
-        super.onPause();
+            }
+        });
+        return latestMessage[0];
     }
 
     @Override
     public void onResume() {
         super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
     }
 
 }

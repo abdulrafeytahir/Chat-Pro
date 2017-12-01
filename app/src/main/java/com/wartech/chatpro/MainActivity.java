@@ -1,10 +1,7 @@
 package com.wartech.chatpro;
 
-import android.app.LoaderManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.Loader;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
@@ -23,7 +20,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -31,18 +27,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.wartech.chatpro.data.ChatContract;
 
+import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
+import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.USERS;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
-import static com.wartech.chatpro.data.ChatContract.USERS;
 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class MainActivity extends AppCompatActivity {
 
     private DatabaseReference mDatabaseRef;
-    private ChildEventListener mChildeEventListener;
-    private int MAIN_ACTIVITY_LOADER_ID = 0;
-
-    private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 1;
+    private ChildEventListener mChilEvenListener;
+    private static final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 123;
     private static final String TAG = "chatpro";
 
     @Override
@@ -56,92 +51,58 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         loadMainUI();
 
         // ReminderUtilities.scheduleChatReminder(this);
+
     }
 
     // implementing childEventListener callback methods to update database
     private void attachDatabaseReadListener() {
+        // attaching child event listener to go the users
+        mDatabaseRef.child(USERS).keepSynced(true);
+        mDatabaseRef.child(USERS).addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                final String phoneNumber = dataSnapshot.getKey();
+                if (!phoneNumber.equals(mUserPhoneNumber)) {
+                    Log.d(TAG, "contact: " + phoneNumber);
+                    // see if number is exists in phone book
+                    boolean ifNumberExistsinPhoneBook = ifContactExistsInPhoneBook(MainActivity.this, phoneNumber);
+                    if (ifNumberExistsinPhoneBook) {
+                        mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).child(phoneNumber)
+                                .child(CHAT_ID).addValueEventListener(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        String value = dataSnapshot.getValue(String.class);
+                                        if (TextUtils.isEmpty(value)) {
+                                            // save contact in firebase database
+                                            // set the chat id against this contact to null
+                                            mDatabaseRef.child(USERS).child(mUserPhoneNumber)
+                                                    .child(CONTACTS).child(phoneNumber).child(CHAT_ID).setValue("");
 
-        if (mChildeEventListener == null) {
-            mChildeEventListener = new ChildEventListener() {
-                @Override
-                public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    final String phoneNumber = dataSnapshot.getKey();
-                    if (!phoneNumber.equals(mUserPhoneNumber)) {
-                        Log.d(TAG, "contact: " + phoneNumber);
-                        // see if number is already added in local db
-                        boolean ifNumberExistsInDb = ifContactExistsInDb(MainActivity.this, phoneNumber);
-                        if (!ifNumberExistsInDb) {
-                            // then check if number is present in phonebook
-                            boolean ifNumberExistsinPhoneBook = ifContactExistsInPhoneBook(MainActivity.this, phoneNumber);
-                            if (ifNumberExistsinPhoneBook) {
-                                // save contact details in local database
-                                saveContactDetails(phoneNumber);
+                                        }
+                                    }
 
-                                mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.Contacts.TABLE_NAME)
-                                        .child(phoneNumber).child(ChatContract.Contacts.COLUMN_CHAT_ID)
-                                        .addListenerForSingleValueEvent(new ValueEventListener() {
-                                            @Override
-                                            public void onDataChange(DataSnapshot dataSnapshot) {
-                                                String value = dataSnapshot.getValue(String.class);
-                                                if (TextUtils.isEmpty(value)) {
-                                                    // save contact in firebase database
-                                                    mDatabaseRef.child(USERS).child(mUserPhoneNumber)
-                                                            .child(ChatContract.Contacts.TABLE_NAME)
-                                                            .child(phoneNumber).child(ChatContract
-                                                            .Contacts.COLUMN_CHAT_ID).setValue("");
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) {
 
-                                                }
-                                            }
+                                    }
 
-                                            @Override
-                                            public void onCancelled(DatabaseError databaseError) {
-
-                                            }
-
-                                        });
-                            }
-                        }
+                                });
                     }
                 }
+            }
 
-                @Override
-                public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-                }
-
-                @Override
-                public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-                }
-
-                @Override
-                public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-
-                }
-            };
-            mDatabaseRef.child(USERS).addChildEventListener(mChildeEventListener);
-        }
-
-    }
-
-    // Get user details for give phone number
-    public void saveContactDetails(final String phoneNumber) {
-        final String[] username = {null};
-        final String[] last_seen = {null};
-
-        mDatabaseRef.child("users").child(phoneNumber).child("user_details").child("username")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                username[0] = dataSnapshot.getValue(String.class);
-                if(username[0] == null){
-                    throw new NullPointerException("contact name is null");
-                }
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
 
             }
 
@@ -151,67 +112,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             }
         });
 
-        mDatabaseRef.child("users").child(phoneNumber).child("user_details").child("last_seen")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        last_seen[0] = dataSnapshot.getValue(String.class);
-                        if(last_seen[0] == null){
-                            throw new NullPointerException("contact status is null");
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-
-                    }
-                });
-
-        saveContactInDB(this, phoneNumber, username[0], last_seen[0]);
-    }
-
-
-    // Save contact number in local DB
-    public void saveContactInDB(Context context, String phoneNumber, String username, String lastSeen) {
-        ContentValues values = new ContentValues();
-        values.put(ChatContract.Contacts.COLUMN_PHONE_NUMBER, phoneNumber);
-        values.put(ChatContract.Contacts.COLUMN_NAME, username);
-        values.put(ChatContract.Contacts.COLUMN_LAST_SEEN, lastSeen);
-
-        Uri insertUri = ChatContract.Contacts.CONTENT_URI;
-        Uri contactUri = context.getContentResolver().insert(insertUri, values);
-
-        if (contactUri == null) {
-            Toast.makeText(this, "Unable to save contact in local DB", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "Contact saved!!", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    // check if contact number is already added in local DB
-    public boolean ifContactExistsInDb(Context context, String number) {
-
-        Uri lookupUri = ChatContract.Contacts.CONTENT_URI;
-        Log.d(TAG, "uri: " + lookupUri);
-        String[] mPhoneNumberProjection = {ChatContract.Contacts.COLUMN_PHONE_NUMBER};
-        String selection = ChatContract.Contacts.COLUMN_PHONE_NUMBER + "=?";
-        String[] selectionArgs = new String[]{number};
-
-        Cursor cur = context.getContentResolver().query(lookupUri, mPhoneNumberProjection, selection, selectionArgs, null);
-        try {
-            if (cur != null && cur.moveToFirst()) {
-                return true;
-            }
-        } finally {
-            if (cur != null)
-                cur.close();
-        }
-        return false;
     }
 
     // Check if contact number exists in user's phone book
     public boolean ifContactExistsInPhoneBook(Context context, String number) {
-        /// number is the phone number
         Uri lookupUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
         String[] mPhoneNumberProjection = {ContactsContract.PhoneLookup._ID, ContactsContract.PhoneLookup.NUMBER,
                 ContactsContract.PhoneLookup.DISPLAY_NAME};
@@ -240,8 +144,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         // request permission to access contacts
         requestContactsPermission();
-
-
     }
 
     public void requestContactsPermission() {
@@ -255,8 +157,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
 
         } else {
-            // calling initLoader method on Loader Manager
-            getLoaderManager().initLoader(MAIN_ACTIVITY_LOADER_ID, null, this);
+            attachDatabaseReadListener();
         }
     }
 
@@ -269,8 +170,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // calling initLoader method on Loader Manager
-                    getLoaderManager().initLoader(MAIN_ACTIVITY_LOADER_ID, null, this);
+                    attachDatabaseReadListener();
 
                 }
             }
@@ -278,22 +178,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         }
     }
 
-    // implement of ladder callback methods
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        attachDatabaseReadListener();
-        return null;
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
-
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-
-    }
 
     // implement FragmentPagerAdapter as a subclass of TabAdapter in MainActivity.class
     public class TabAdapter extends FragmentPagerAdapter {
@@ -345,11 +229,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
                 return true;
-
-            case R.id.user_details:
-                Intent i = new Intent(MainActivity.this, DisplayContactDetailsActivity.class);
-                i.setData(ChatContract.UserDetails.CONTENT_URI);
-                startActivity(i);
+            case R.id.search:
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -361,13 +241,4 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         finishAffinity();
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mChildeEventListener != null) {
-            mDatabaseRef.child(USERS).removeEventListener(mChildeEventListener);
-            mChildeEventListener = null;
-        }
-
-    }
 }

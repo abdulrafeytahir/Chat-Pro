@@ -1,23 +1,16 @@
 package com.wartech.chatpro;
 
-import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Build;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
@@ -28,14 +21,15 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.wartech.chatpro.data.ChatContract;
 
 import java.util.Arrays;
 
-import static android.R.attr.id;
-import static android.R.attr.value;
-import static com.wartech.chatpro.data.ChatContract.LAST_SEEN;
-import static com.wartech.chatpro.data.ChatContract.USERS;
+import static android.os.Build.VERSION_CODES.M;
+import static com.wartech.chatpro.ChatProConstants.ACTIVE;
+import static com.wartech.chatpro.ChatProConstants.APP_INFO;
+import static com.wartech.chatpro.ChatProConstants.LAST_SEEN;
+import static com.wartech.chatpro.ChatProConstants.USERS;
+import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
 
 
 public class SignupActivity extends AppCompatActivity {
@@ -45,20 +39,25 @@ public class SignupActivity extends AppCompatActivity {
     private DatabaseReference mDatabaseRef;
 
     private final String TAG = "ChatPro";
-    private static final int RC_SIGN_IN = 1;
+    private static final int RC_SIGN_IN = 101;
     public static String mUserPhoneNumber;
+    static boolean mCalledAlready = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // enabling firebase to cache data in the device
+        if (!mCalledAlready) {
+            FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+            mCalledAlready = true;
+        }
         // Initialize Firebase Components;
         mFirebaseAuth = FirebaseAuth.getInstance();
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
 
         // Initialize AuthStateListener
         initializeAuthStateListener();
-
     }
 
     /**
@@ -67,7 +66,7 @@ public class SignupActivity extends AppCompatActivity {
     public void initializeAuthStateListener() {
 
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
-            @RequiresApi(api = Build.VERSION_CODES.M)
+            @RequiresApi(api = M)
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
@@ -86,69 +85,40 @@ public class SignupActivity extends AppCompatActivity {
         };
     }
 
+    // Method to check if device is connected to the internet
+    public boolean isNetworkAvailable() {
+        ConnectivityManager cm =
+                (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+    }
+
     /**
      * Method to set User Detials in Firebase Database
      **/
-    public void addUserDetails() {
-        EditText usernameEditText = findViewById(R.id.usernameEditText);
-        String username = usernameEditText.getText().toString();
-        if (TextUtils.isEmpty(username)) {
-            // if user hasn't enterd a name in text field, show a toast
-            Toast.makeText(SignupActivity.this, "Please enter username", Toast.LENGTH_SHORT).show();
-        } else {
-            // otherwise set username in the databaase
-            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
-                    .child(ChatContract.UserDetails.COLUMN_USERNAME).setValue(username);
 
-            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
-                    .child(LAST_SEEN).setValue("Active");
-
-            // Create a new map of values, where column names are the keys
-            ContentValues values = new ContentValues();
-            values.put(ChatContract.UserDetails.COLUMN_PHONE_NUMBER, mUserPhoneNumber);
-            values.put(ChatContract.UserDetails.COLUMN_USERNAME, username);
-
-            // Insert the new row, returning the primary key value of the new row
-            Uri newUri = getContentResolver().insert(ChatContract.UserDetails.CONTENT_URI, values);
-            Log.d(TAG, "Uri: " + newUri);
-            if (newUri == null) {
-                Toast.makeText(this, "error in saving user data", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "user data saved", Toast.LENGTH_SHORT).show();
-            }
-
-            // move to main activity
-            Intent intent = new Intent(SignupActivity.this, MainActivity.class);
-            startActivity(intent);
-        }
-    }
 
     /**
      * Method to check user details
      **/
     public void checkUserDetails() {
-        mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
-                .child(ChatContract.UserDetails.COLUMN_USERNAME).addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference ref = mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(USER_DETAILS);
+        ref.keepSynced(true);
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                String value = dataSnapshot.getValue(String.class);
-                // if username is null
-                if (TextUtils.isEmpty(value)) {
-                    // set view to get user details on runtime
-                    setContentView(R.layout.activity_user_details);
+                // check if user details have been added
+                if (!dataSnapshot.exists()) {
+                    // if not, then set view to get user details on runtime
+                    Intent intent = new Intent(SignupActivity.this, UserDetails.class);
+                    startActivity(intent);
 
-                    Button doneButton = findViewById(R.id.doneButton);
-                    doneButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            // add user details in the database
-                            addUserDetails();
-                        }
-                    });
                 } else {
                     // if user is logged in, set status to Active
-                    mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(ChatContract.UserDetails.TABLE_NAME)
-                            .child(LAST_SEEN).setValue("Active");
+                    mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(USER_DETAILS)
+                            .child(LAST_SEEN).setValue(ACTIVE);
 
                     // move to main Activity
                     Intent intent = new Intent(SignupActivity.this, MainActivity.class);
@@ -189,10 +159,13 @@ public class SignupActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 Toast.makeText(SignupActivity.this, "Signed in successfully!!", Toast.LENGTH_SHORT).show();
             } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(SignupActivity.this, "Sign in cancelled", Toast.LENGTH_SHORT).show();
-                finish();
+                if (!isNetworkAvailable()) {
+                    Intent intent = new Intent(SignupActivity.this, EmptyActivity.class);
+                    startActivity(intent);
+                }
             }
         }
+
     }
 
     @Override
@@ -218,7 +191,9 @@ public class SignupActivity extends AppCompatActivity {
     public void checkBuildVersion() {
         final String versionName = BuildConfig.VERSION_NAME;
         Log.d(TAG, "version name in app: " + versionName);
-        mDatabaseRef.child("app_info").child("version_name").addValueEventListener(new ValueEventListener() {
+        DatabaseReference ref = mDatabaseRef.child(APP_INFO).child(ChatProConstants.VERSION_NAME);
+        ref.keepSynced(true);
+        ref.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String value = dataSnapshot.getValue(String.class);
@@ -228,8 +203,7 @@ public class SignupActivity extends AppCompatActivity {
                     checkUserDetails();
 
                 } else {
-
-                    Toast.makeText(SignupActivity.this, "Your app is fully updated", Toast.LENGTH_SHORT).show();
+                    // show a dialog box telling the user to update the app
                     createAlertDialog();
                 }
             }
@@ -247,12 +221,12 @@ public class SignupActivity extends AppCompatActivity {
     public void createAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(SignupActivity.this);
         builder.setTitle("Update Required!");
-        builder.setMessage("A newer version of the app is available. Please update to synchronize your data");
+        builder.setMessage("A new version of the app is available. Please update to synchronize your data");
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-
+                dialogInterface.cancel();
             }
         });
     }

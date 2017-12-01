@@ -2,22 +2,15 @@ package com.wartech.chatpro;
 
 import android.app.Activity;
 import android.content.Context;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.squareup.picasso.Picasso;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-
-import static com.wartech.chatpro.ChatActivity.mUsername;
 
 public class ChatAdapter extends ArrayAdapter<ChatMessage> {
     public ChatAdapter(Context context, int resource, List<ChatMessage> objects) {

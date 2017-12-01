@@ -10,7 +10,9 @@
         android:layout_height="match_parent"
         android:layout_above="@+id/linearLayout"
         android:divider="@drawable/list_driver"
-        android:dividerHeight="5sp"
+        android:background="?android:attr/activatedBackgroundIndicator"
+        android:choiceMode="multipleChoice"
+        android:dividerHeight="1dp"
         android:stackFromBottom="true"
         android:transcriptMode="alwaysScroll"
         tools:listitem="@layout/item_message" />

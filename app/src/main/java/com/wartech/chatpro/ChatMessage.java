@@ -2,6 +2,7 @@ package com.wartech.chatpro;
 
 public class ChatMessage {
 
+    private String messageID;
     private String text;
     private String senderName;
     private String photoUrl;
@@ -15,6 +16,18 @@ public class ChatMessage {
         this.senderName = name;
         this.photoUrl = photoUrl;
         this.time = time;
+    }
+
+    public ChatMessage(String messageID, String text, String senderName, String photoUrl, String time) {
+        this.messageID = messageID;
+        this.text = text;
+        this.senderName = senderName;
+        this.photoUrl = photoUrl;
+        this.time = time;
+    }
+
+    public String getMessageID() {
+        return messageID;
     }
 
     public String getText() {

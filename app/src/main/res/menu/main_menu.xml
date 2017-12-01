@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/search"
+        android:title="@string/search"
+        android:icon="@drawable/search_icon"
+        app:showAsAction="ifRoom"/>
+
     <item
         android:id="@+id/settings"
         android:title="@string/settings"
+        android:icon="@drawable/settings_icon"
         app:showAsAction="never"/>
 
-    <item
-        android:id="@+id/user_details"
-        android:title="@string/user_detais"
-        app:showAsAction="never"/>
 </menu>

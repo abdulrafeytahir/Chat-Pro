@@ -3,6 +3,8 @@
     package="com.wartech.chatpro">
 
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -33,11 +35,12 @@
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <provider
-            android:name=".data.ChatProvider"
-            android:authorities="com.wartech.chatpro"
-            android:exported="false"/>
-
+        <activity android:name=".EmptyActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".SignupActivity" />
+        </activity>
+        <activity android:name=".UserDetails"></activity>
     </application>
 
 </manifest>

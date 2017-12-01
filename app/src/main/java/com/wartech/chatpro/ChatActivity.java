@@ -9,11 +9,18 @@ import android.text.InputFilter;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.ChildEventListener;
@@ -32,6 +39,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static android.R.attr.mode;
+import static android.R.attr.x;
+import static com.wartech.chatpro.ChatProConstants.CHATS;
+import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
+import static com.wartech.chatpro.ChatProConstants.CHAT_PHOTOS;
+import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.USERNAME;
+import static com.wartech.chatpro.ChatProConstants.USERS;
+import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
 
@@ -47,13 +63,17 @@ public class ChatActivity extends AppCompatActivity {
     private EditText mMessageEditText;
     private Button mSendButton;
 
-    public static String mUsername;
+    private String mUsername;
     private String mTime = null;
     private String mChatId;
 
     private DatabaseReference mDatabaseRef;
     private ChildEventListener mChildEventListener;
     private StorageReference mChatPhotosStorageReference;
+
+    private Menu menuu;
+    Integer counter = new Integer(0);
+    private ArrayList<String> deleteMessages = new ArrayList<>();
 
     public ChatActivity() {
     }
@@ -65,7 +85,7 @@ public class ChatActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
 
-        if(intent.hasExtra("phoneNumber")) {
+        if (intent.hasExtra("phoneNumber")) {
             contactPhoneNumber = intent.getStringExtra("phoneNumber");
         } else if (intent.hasExtra("notification phone number")) {
             contactPhoneNumber = intent.getStringExtra("notification phone number");
@@ -74,29 +94,116 @@ public class ChatActivity extends AppCompatActivity {
 
         // Get database references from Firebase
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
-        mChatPhotosStorageReference = FirebaseStorage.getInstance().getReference().child("chat_photos");
+        mChatPhotosStorageReference = FirebaseStorage.getInstance().getReference().child(CHAT_PHOTOS);
 
+        // get username
         getUserName();
 
-        ListView mMessageListView = findViewById(R.id.messageListView);
+        final ListView mMessageListView = findViewById(R.id.messageListView);
         ImageButton mPhotoPickerButton = findViewById(R.id.photoPickerButton);
         mMessageEditText = findViewById(R.id.messageEditText);
         mSendButton = findViewById(R.id.sendButton);
 
         // Initialize message ListView and its adapter
-        List<ChatMessage> friendlyMessages = new ArrayList<>();
+        final ArrayList<ChatMessage> friendlyMessages = new ArrayList<>();
         mMessageAdapter = new ChatAdapter(this, R.layout.item_message, friendlyMessages);
         mMessageListView.setAdapter(mMessageAdapter);
 
+        mMessageListView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE_MODAL);
+
+        mMessageListView.setMultiChoiceModeListener(new AbsListView.MultiChoiceModeListener() {
+            @Override
+            public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
+                ArrayList<Integer> positions = new ArrayList<Integer>();
+                if (mMessageListView.isItemChecked(position)) {
+                    positions.add(position);
+                    counter = counter + 1;
+
+                } else {
+                    counter = counter - 1;
+                }
+
+
+                if (counter > 1) {
+
+                    menuu.clear();
+                    MenuInflater Mymenu2 = mode.getMenuInflater();
+                    Mymenu2.inflate(R.menu.menu, menuu);
+
+
+                } else if (counter == 1) {
+                    boolean isPhoto = mMessageAdapter.getItem(position).getPhotoUrl() != null;
+                    boolean isText = mMessageAdapter.getItem(position).getText() != null;
+                    if (isPhoto) {
+                        menuu.clear();
+                        MenuInflater Mymenu2 = mode.getMenuInflater();
+                        Mymenu2.inflate(R.menu.imageselected, menuu);
+                    } else if(isText){
+                        menuu.clear();
+                        MenuInflater Mymenu2 = mode.getMenuInflater();
+                        Mymenu2.inflate(R.menu.singletextselect, menuu);
+                    }
+
+                }
+
+                deleteMessages.add(friendlyMessages.get(position).getMessageID());
+                mode.setTitle(counter.toString());
+
+
+            }
+
+            @Override
+            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+
+                MenuInflater Mymenu1 = mode.getMenuInflater();
+                Mymenu1.inflate(R.menu.singletextselect, menu);
+                menuu = menu;
+
+                return true;
+
+
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.cmenu_forward:
+//                        Intent i = new Intent(ChatActivity.this, Settings.class);
+//                        startActivity(i);
+                        Toast.makeText(ChatActivity.this, "Forward", Toast.LENGTH_SHORT).show();
+
+                        break;
+                    case R.id.cmenu_del:
+
+                        Toast.makeText(ChatActivity.this, "Delete", Toast.LENGTH_SHORT).show();
+                        break;
+
+                    default:
+                        break;
+                }
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode mode) {
+                counter = 0;
+                mMessageListView.clearChoices();
+                mMessageAdapter.notifyDataSetChanged();
+            }
+        });
 
         // ImagePickerButton shows an image picker to upload a image for a message
         mPhotoPickerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/jpeg");
-                intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
-                startActivityForResult(Intent.createChooser(intent, "Complete action using"), RC_PHOTO_PICKER);
+                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                photoPickerIntent.setType("image/*");
+                startActivityForResult(photoPickerIntent, RC_PHOTO_PICKER);
             }
         });
 
@@ -134,43 +241,45 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         attachMessageReadListener();
+
     }
 
     public void setChatKeyAndSendMessage() {
-        mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts").child(contactPhoneNumber)
-                .child("chat_id").addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference reference = mDatabaseRef.child(USERS).child(mUserPhoneNumber)
+                .child(CONTACTS).child(contactPhoneNumber).child(CHAT_ID);
+        reference.keepSynced(true);
+        reference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 mChatId = dataSnapshot.getValue(String.class);
                 //Chat id is only assigned once when contact's chat id is null
                 if (TextUtils.isEmpty(mChatId)) {
                     // set a chat id against this contact number
-                    mChatId = mDatabaseRef.child("chats").push().getKey();
-                    mDatabaseRef.child("chats").child(mChatId).setValue("");
+                    mChatId = mDatabaseRef.child(CHATS).push().getKey();
+                    mDatabaseRef.child(CHATS).child(mChatId).setValue("");
 
                     // set chat id for both users if they are chatting for the first time
-                    mDatabaseRef.child("users")
-                            .child(mUserPhoneNumber).child("contacts")
-                            .child(contactPhoneNumber).child("chat_id").setValue(mChatId);
+                    mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS)
+                            .child(contactPhoneNumber).child(CHAT_ID).setValue(mChatId);
 
-                    mDatabaseRef.child("users")
-                            .child(contactPhoneNumber).child("contacts")
-                            .child(mUserPhoneNumber).child("chat_id").setValue(mChatId);
+                    mDatabaseRef.child(USERS).child(contactPhoneNumber).child(CONTACTS)
+                            .child(mUserPhoneNumber).child(CHAT_ID).setValue(mChatId);
 
                 }
 
                 mTime = getTime();
                 // setup a friendly message object and push it to the DB
-                ChatMessage friendlyMessage = new ChatMessage(mMessageEditText.getText().toString(),
+                String messageID = mDatabaseRef.child(CHATS).child(mChatId).push().getKey();
+                ChatMessage friendlyMessage = new ChatMessage(messageID, mMessageEditText.getText().toString(),
                         mUsername, null, mTime);
-                mDatabaseRef.child("chats").child(mChatId).push().setValue(friendlyMessage);
+                mDatabaseRef.child(CHATS).child(mChatId).child(messageID).setValue(friendlyMessage);
                 // Clear input box
                 mMessageEditText.setText("");
 
                 if (mChildEventListener == null) {
+                    // attach message read listener
                     attachMessageReadListener();
                 }
-
             }
 
             @Override
@@ -179,6 +288,7 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+
     }
 
     public String getTime() {
@@ -186,23 +296,22 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void getUserName() {
-        mDatabaseRef.child("users").child(mUserPhoneNumber).child("user_details").child("username")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        String username = dataSnapshot.getValue(String.class);
-                        if (!TextUtils.isEmpty(username)) {
-                            mUsername = username;
-                        } else {
-                            mUsername = "Anonymous";
-                        }
-                    }
+        DatabaseReference reference = mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(USER_DETAILS).child(USERNAME);
+        reference.keepSynced(true);
+        reference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String username = dataSnapshot.getValue(String.class);
+                if (!TextUtils.isEmpty(username)) {
+                    mUsername = username;
+                }
+            }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
-                    }
-                });
+            }
+        });
     }
 
     // on activity result method for when user picks a photo
@@ -232,40 +341,46 @@ public class ChatActivity extends AppCompatActivity {
 
     // implementing childEventListener callback methods to update database
     private void attachMessageReadListener() {
+        // listener to check if chat ID exists against this contact number
         if (mChildEventListener == null) {
             mMessageAdapter.clear();
             mChildEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    ChatMessage friendlyMessage = dataSnapshot.getValue(ChatMessage.class);
-                    mMessageAdapter.add(friendlyMessage);
+                    ChatMessage message = dataSnapshot.getValue(ChatMessage.class);
+                    mMessageAdapter.add(message);
                 }
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
                 }
 
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
+
                 }
 
                 @Override
                 public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
+
                 }
             };
-
-            // listener to check if chat ID exists against this contact number
-            mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts").child(contactPhoneNumber)
-                    .child("chat_id").addValueEventListener(new ValueEventListener() {
+            DatabaseReference reference = mDatabaseRef.child(USERS).child(mUserPhoneNumber)
+                    .child(CONTACTS).child(contactPhoneNumber).child(CHAT_ID);
+            reference.keepSynced(true);
+            reference.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     mChatId = dataSnapshot.getValue(String.class);
                     if (!TextUtils.isEmpty(mChatId)) {
-                        mDatabaseRef.child("chats").child(mChatId).addChildEventListener(mChildEventListener);
+                        mDatabaseRef.child(CHATS).child(mChatId).keepSynced(true);
+                        mDatabaseRef.child(CHATS).child(mChatId).addChildEventListener(mChildEventListener);
                     }
                 }
 
@@ -275,27 +390,24 @@ public class ChatActivity extends AppCompatActivity {
                 }
             });
         }
+
     }
 
-    private void detatchMessageReadListener() {
-        // removing child listener
-        if (mChildEventListener != null && !TextUtils.isEmpty(mChatId)) {
-            mDatabaseRef.child("chats").child(mChatId).removeEventListener(mChildEventListener);
-            mChildEventListener = null;
-        }
-    }
 
     @Override
     public void onPause() {
         // remove up the listeners if the activity is paused
         super.onPause();
-        detatchMessageReadListener();
-     //  ReminderUtilities.scheduleChatReminder(ChatActivity.this);
+        if (mChildEventListener != null && !TextUtils.isEmpty(mChatId)) {
+            mDatabaseRef.child(CHATS).child(mChatId).removeEventListener(mChildEventListener);
+            mChildEventListener = null;
+        }
+        //  ReminderUtilities.scheduleChatReminder(ChatActivity.this);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-       // ReminderUtilities.haltJob();
+        // ReminderUtilities.haltJob();
     }
 }

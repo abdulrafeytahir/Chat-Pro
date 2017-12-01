@@ -13,7 +13,7 @@
         android:transcriptMode="alwaysScroll" />
 
     <android.support.design.widget.FloatingActionButton
-        android:id="@+id/chatActionButton"
+        android:id="@+id/contactActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:fabSize="normal"
