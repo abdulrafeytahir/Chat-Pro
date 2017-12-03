@@ -80,6 +80,7 @@ public class ChatFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent intent = new Intent(getContext(), ChatActivity.class);
+                intent.putExtra("contactName", chatFragmentAdapter.getItem(i).getmName());
                 intent.putExtra("phoneNumber", chatFragmentAdapter.getItem(i).getmPhoneNumber());
                 startActivity(intent);
             }

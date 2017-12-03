@@ -86,6 +86,7 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
 
         Intent intent = getIntent();
+        setTitle(intent.getStringExtra("contactName"));
 
         if (intent.hasExtra("phoneNumber")) {
             contactPhoneNumber = intent.getStringExtra("phoneNumber");

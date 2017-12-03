@@ -66,6 +66,7 @@ public class ContactActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Contact contact = (Contact) contactAdapter.getItem(i);
                 Intent intent = new Intent(ContactActivity.this, ChatActivity.class);
+                intent.putExtra("contactName", contact.getName());
                 intent.putExtra("phoneNumber", contact.getPhoneNumber());
                 startActivity(intent);
             }

@@ -50,7 +50,6 @@
                 android:textColor="@color/black"
                 tools:text="Abdul Rafey Tahir" />
 
-
         </LinearLayout>
 
         <View

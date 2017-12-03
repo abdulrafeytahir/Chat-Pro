@@ -36,6 +36,8 @@ public class DisplayContactDetailsActivity extends AppCompatActivity {
         String imageURL = intent.getStringExtra(PROFILE_PIC_URI);
         String status = intent.getStringExtra(STATUS);
 
+        setTitle(username);
+
         TextView nameTextView = findViewById(R.id.user_name);
         nameTextView.setText(username);
 

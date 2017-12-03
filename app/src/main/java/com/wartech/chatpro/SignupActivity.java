@@ -198,6 +198,7 @@ public class SignupActivity extends AppCompatActivity {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String value = dataSnapshot.getValue(String.class);
                 Log.d(TAG, "version name in Firebase: " + value);
+                checkUserDetails();
                 if (versionName.equals(value)) {
                     // check user details if version matches
                     checkUserDetails();
