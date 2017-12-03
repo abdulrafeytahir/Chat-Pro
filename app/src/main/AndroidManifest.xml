@@ -20,7 +20,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity" />
+        <activity android:name=".MainActivity"/>
         <activity android:name=".ChatActivity" />
         <activity
             android:name=".ContactActivity"
@@ -40,7 +40,7 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".SignupActivity" />
         </activity>
-        <activity android:name=".UserDetails"></activity>
+        <activity android:name=".UserDetails"/>
     </application>
 
 </manifest>

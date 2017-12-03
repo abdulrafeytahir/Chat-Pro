@@ -1,15 +1,16 @@
 package com.wartech.chatpro;
 
 import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.SearchView;
 
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -33,6 +34,7 @@ public class ContactActivity extends AppCompatActivity {
     private DatabaseReference mDatabaseRef;
 
     private ListView listView;
+    ArrayList<Contact> contacts;
     private ContactAdapter contactAdapter;
     private String TAG = "contact";
 
@@ -45,7 +47,7 @@ public class ContactActivity extends AppCompatActivity {
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
 
         // attach contacts adapter to listview
-        ArrayList<Contact> contacts = new ArrayList<>();
+        contacts = new ArrayList<>();
         contactAdapter = new ContactAdapter(this, R.layout.item_contact, contacts);
         listView = findViewById(R.id.contactListView);
 
@@ -62,8 +64,9 @@ public class ContactActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                Contact contact = (Contact) contactAdapter.getItem(i);
                 Intent intent = new Intent(ContactActivity.this, ChatActivity.class);
-                intent.putExtra("phoneNumber", contactAdapter.getItem(i).getPhoneNumber());
+                intent.putExtra("phoneNumber", contact.getPhoneNumber());
                 startActivity(intent);
             }
         });
@@ -73,7 +76,7 @@ public class ContactActivity extends AppCompatActivity {
 
     // implementing childEventListener callback methods to update database
     private void attachDatabaseReadListener() {
-        contactAdapter.clear();
+        // contactAdapter.clear();
         mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).keepSynced(true);
         mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS)
                 .addChildEventListener(new ChildEventListener() {
@@ -127,6 +130,31 @@ public class ContactActivity extends AppCompatActivity {
         });
 
     }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        MenuItem menuItem = menu.findItem(R.id.search);
+        final SearchView searchView = (SearchView) menuItem.getActionView();
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                contactAdapter.setFilterText(newText);
+                contactAdapter.getFilter().filter(newText);
+                return true;
+            }
+        });
+
+        return true;
+    }
+
 
 }
 

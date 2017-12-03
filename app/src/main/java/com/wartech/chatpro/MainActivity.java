@@ -229,7 +229,6 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
                 return true;
-            case R.id.search:
             default:
                 return super.onOptionsItemSelected(item);
         }

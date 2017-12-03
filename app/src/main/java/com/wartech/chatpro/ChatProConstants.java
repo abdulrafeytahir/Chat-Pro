@@ -41,6 +41,8 @@ public class ChatProConstants {
 
     public static final String PROFILE_PICS = "profile_pics";
 
+    public static final String LATEST_MESSAGE = "latest_message";
+
 
 
 }

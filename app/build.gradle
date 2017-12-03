@@ -22,18 +22,10 @@ android {
         exclude 'META-INF/LICENSE-FIREBASE.txt'
         exclude 'META-INF/NOTICE'
     }
+    sourceSets { main { assets.srcDirs = ['src/main/assets', 'src/main/assets/'] } }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-
-    // Support Li   braries
-
-    // Firebase dependencies
-
-    // Picasso dependency
-
-
     compile 'com.android.support:design:26.0.1'
     compile 'com.android.support:appcompat-v7:26.0.1'
     compile 'com.firebase:firebase-jobdispatcher:0.8.2'
@@ -43,7 +35,7 @@ dependencies {
     compile 'com.firebaseui:firebase-ui:2.3.0'
     compile 'com.firebaseui:firebase-ui-storage:0.6.0'
     compile 'com.squareup.picasso:picasso:2.5.2'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'de.hdodenhof:circleimageview:2.1.0'
+    compile 'com.xeoh.android:text-highlighter:1.0.1'
 }
 apply plugin: 'com.google.gms.google-services'

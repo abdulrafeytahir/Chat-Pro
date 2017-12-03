@@ -1,13 +1,20 @@
 package com.wartech.chatpro;
 
+import android.app.SearchManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -51,6 +58,8 @@ public class ContactFragment extends Fragment {
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        setHasOptionsMenu(true);
 
         // initialize fragment rootView
         View rootView = inflater.inflate(R.layout.fragment_contacts_layout, container, false);
@@ -159,20 +168,20 @@ public class ContactFragment extends Fragment {
         DatabaseReference reference = mDatabaseRef.child(USERS).child(phoneNumber).child(USER_DETAILS);
         reference.keepSynced(true);
         reference.addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        String username = dataSnapshot.child(USERNAME).getValue(String.class);
-                        String imageURL = dataSnapshot.child(PROFILE_PIC_URI).getValue(String.class);
-                        String status = dataSnapshot.child(STATUS).getValue(String.class);
-                        Contact contact = new Contact(username, phoneNumber, imageURL, status);
-                        contactAdapter.add(contact);
-                    }
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String username = dataSnapshot.child(USERNAME).getValue(String.class);
+                String imageURL = dataSnapshot.child(PROFILE_PIC_URI).getValue(String.class);
+                String status = dataSnapshot.child(STATUS).getValue(String.class);
+                Contact contact = new Contact(username, phoneNumber, imageURL, status);
+                contactAdapter.add(contact);
+            }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
-                    }
-                });
+            }
+        });
 
     }
 
@@ -180,8 +189,38 @@ public class ContactFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == RC_PICK_CONTACT && resultCode == RESULT_OK) {
+        if (requestCode == RC_PICK_CONTACT && resultCode == RESULT_OK) {
             Toast.makeText(getContext(), "Contact Added Successfully!", Toast.LENGTH_SHORT).show();
         }
     }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        menu.clear();
+        inflater.inflate(R.menu.main_menu, menu);
+        MenuItem item = menu.findItem(R.id.search);
+        SearchView searchView = new SearchView(((MainActivity) getContext()).getSupportActionBar().getThemedContext());
+
+        MenuItemCompat.setShowAsAction(item, MenuItemCompat.SHOW_AS_ACTION_ALWAYS);
+        MenuItemCompat.setActionView(item, searchView);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                contactAdapter.setFilterText(newText);
+                contactAdapter.getFilter().filter(newText);
+                return true;
+            }
+        });
+
+    }
+
+
 }

@@ -13,12 +13,6 @@ public class Contact {
         this.mStatus = mStatus;
     }
 
-    public Contact(String mName, String mPhoneNumber, String mImageURL) {
-        this.mName = mName;
-        this.mPhoneNumber = mPhoneNumber;
-        this.mImageURL = mImageURL;
-    }
-
     public String getName() {
         return mName;
     }
@@ -34,4 +28,5 @@ public class Contact {
     public String getmStatus() {
         return mStatus;
     }
+
 }

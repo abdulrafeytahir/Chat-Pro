@@ -20,6 +20,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -45,6 +46,7 @@ import static com.wartech.chatpro.ChatProConstants.CHATS;
 import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
 import static com.wartech.chatpro.ChatProConstants.CHAT_PHOTOS;
 import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.LATEST_MESSAGE;
 import static com.wartech.chatpro.ChatProConstants.USERNAME;
 import static com.wartech.chatpro.ChatProConstants.USERS;
 import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
@@ -270,9 +272,15 @@ public class ChatActivity extends AppCompatActivity {
                 mTime = getTime();
                 // setup a friendly message object and push it to the DB
                 String messageID = mDatabaseRef.child(CHATS).child(mChatId).push().getKey();
-                ChatMessage friendlyMessage = new ChatMessage(messageID, mMessageEditText.getText().toString(),
-                        mUsername, null, mTime);
+                String message = mMessageEditText.getText().toString();
+                ChatMessage friendlyMessage = new ChatMessage(messageID, message, mUsername, null, mTime);
                 mDatabaseRef.child(CHATS).child(mChatId).child(messageID).setValue(friendlyMessage);
+
+                mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).child(contactPhoneNumber)
+                        .child(LATEST_MESSAGE).setValue(friendlyMessage);
+
+                mDatabaseRef.child(USERS).child(contactPhoneNumber).child(CONTACTS).child(mUserPhoneNumber)
+                        .child(LATEST_MESSAGE).setValue(friendlyMessage);
                 // Clear input box
                 mMessageEditText.setText("");
 
@@ -410,4 +418,29 @@ public class ChatActivity extends AppCompatActivity {
         super.onResume();
         // ReminderUtilities.haltJob();
     }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        MenuItem menuItem = menu.findItem(R.id.search);
+        final SearchView searchView = (SearchView) menuItem.getActionView();
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                mMessageAdapter.setFilterText(newText);
+                mMessageAdapter.getFilter().filter(newText);
+                return true;
+            }
+        });
+
+        return true;
+    }
+
 }

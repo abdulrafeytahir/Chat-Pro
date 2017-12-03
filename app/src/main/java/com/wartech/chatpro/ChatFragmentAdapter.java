@@ -19,23 +19,25 @@ import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
 
-public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable {
+public class ChatFragmentAdapter extends ArrayAdapter<chatFragmentContact> implements Filterable {
 
-    private TextView nameTextView, phoneTextView;
+    private TextView nameTextView, messageTextView;
     private CircleImageView profilePicImageView;
     private Context context;
-    private ArrayList<Contact> contactsList;
+    private ArrayList<chatFragmentContact> contactsList;
     private CustomFilter filter;
-    private ArrayList<Contact> filterList;
+    private ArrayList<chatFragmentContact> filterList;
     private String filterText;
     private Boolean flag = true, flag2 = true;
+    private int messageLength = 20;
 
-    public ContactAdapter(Context con, int resource, ArrayList<Contact> objects) {
+    public ChatFragmentAdapter(Context con, int resource, ArrayList<chatFragmentContact> objects) {
         super(con, resource, objects);
         context = con;
         contactsList = objects;
@@ -56,7 +58,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
     }
 
     @Override
-    public Contact getItem(int position) {
+    public chatFragmentContact getItem(int position) {
         return contactsList.get(position);
     }
 
@@ -71,23 +73,24 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
 
         LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (convertView == null) {
-            convertView = inflater.inflate(R.layout.item_contact, null);
+            convertView = inflater.inflate(R.layout.item_chat_fragment, null);
 
         }
-        nameTextView = convertView.findViewById(R.id.contactNameTextView);
-        phoneTextView = convertView.findViewById(R.id.contactPhoneNumberTextView);
+        nameTextView = convertView.findViewById(R.id.chatNameTextView);
+        messageTextView = convertView.findViewById(R.id.chatMessageTextView);
 
-        if (!TextUtils.isEmpty(contactsList.get(position).getImageURL())) {
+        if (!TextUtils.isEmpty(contactsList.get(position).getmImageURL())) {
             profilePicImageView = convertView.findViewById(R.id.profilePicImageView);
             Picasso.with(profilePicImageView.getContext())
-                    .load(contactsList.get(position).getImageURL())
+                    .load(contactsList.get(position).getmImageURL())
                     .into(profilePicImageView);
 
         }
+        TextView timeTextView = convertView.findViewById(R.id.chatTimeTextView);
+        timeTextView.setText(contactsList.get(position).getmTime());
 
         if (filterText != null) {
-
-            String itemValue = contactsList.get(position).getPhoneNumber();
+            String itemValue = contactsList.get(position).getmLatestMessage();
             int startPos = itemValue.toLowerCase(Locale.US).indexOf(filterText.toLowerCase(Locale.US));
             int endPos = startPos + filterText.length();
 
@@ -99,10 +102,10 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
                 TextAppearanceSpan highlightSpan = new TextAppearanceSpan(null, Typeface.BOLD, -1, blueColor, null);
 
                 spannable.setSpan(highlightSpan, startPos, endPos, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                phoneTextView.setText(spannable);
+                messageTextView.setText(spannable);
 
                 if (!flag2) {
-                    nameTextView.setText(contactsList.get(position).getName());
+                    nameTextView.setText(contactsList.get(position).getmName());
                     flag2 = true;
                 }
 
@@ -111,7 +114,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
 
             }
 
-            itemValue = contactsList.get(position).getName();
+            itemValue = contactsList.get(position).getmName();
 
             startPos = itemValue.toLowerCase(Locale.US).indexOf(filterText.toLowerCase(Locale.US));
             endPos = startPos + filterText.length();
@@ -126,23 +129,30 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
                 nameTextView.setText(spannable);
 
                 if (!flag) {
-                    phoneTextView.setText(contactsList.get(position).getPhoneNumber());
+                    truncateMessageAndDisplay(contactsList.get(position).getmLatestMessage());
                     flag = true;
                 }
 
             } else {
 
                 flag2 = false;
-                nameTextView.setText(contactsList.get(position).getName());
+                nameTextView.setText(contactsList.get(position).getmName());
             }
 
         } else {
-            phoneTextView.setText(contactsList.get(position).getPhoneNumber());
-            nameTextView.setText(contactsList.get(position).getName());
+            truncateMessageAndDisplay(contactsList.get(position).getmLatestMessage());
+            nameTextView.setText(contactsList.get(position).getmName());
         }
 
         return convertView;
 
+    }
+
+    private void truncateMessageAndDisplay(String message) {
+        if(message.length() > messageLength) {
+            message = message.substring(0, messageLength) + "...";
+            messageTextView.setText(message);
+        }
     }
 
     @Override
@@ -163,11 +173,11 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
             if (constraint != null && constraint.length() > 0) {
 
                 constraint = constraint.toString().toUpperCase();
-                ArrayList<Contact> filters = new ArrayList<>();
+                ArrayList<chatFragmentContact> filters = new ArrayList<>();
 
                 for (int i = 0; i < filterList.size(); i++) {
-                    if (filterList.get(i).getName().toUpperCase().contains(constraint) ||
-                            filterList.get(i).getPhoneNumber().toUpperCase().contains(constraint)) {
+                    if (filterList.get(i).getmName().toUpperCase().contains(constraint) ||
+                            filterList.get(i).getmLatestMessage().toUpperCase().contains(constraint)) {
                         filters.add(filterList.get(i));
 
                     }
@@ -185,7 +195,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
 
-            contactsList = (ArrayList<Contact>) results.values;
+            contactsList = (ArrayList<chatFragmentContact>) results.values;
             notifyDataSetChanged();
 
 
