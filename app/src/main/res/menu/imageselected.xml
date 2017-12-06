@@ -4,14 +4,14 @@
 
 
     <item
-        android:id="@+id/cmenu_forward_image"
+        android:id="@+id/menu_forward"
         android:checkable="false"
         android:icon="@drawable/forward_icon"
         app:showAsAction="always"
         android:title="forward" />
 
     <item
-        android:id="@+id/cmenu_del_image"
+        android:id="@+id/delete_message"
         android:checkable="false"
         android:icon="@drawable/delete_icon"
         app:showAsAction="always"

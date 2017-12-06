@@ -1,5 +1,7 @@
 package com.wartech.chatpro;
 
+import android.*;
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -27,9 +29,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.wartech.chatpro.sync.ReminderUtilities;
 
 import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
 import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.MEDIA_SHARED;
 import static com.wartech.chatpro.ChatProConstants.USERS;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
@@ -69,24 +73,27 @@ public class MainActivity extends AppCompatActivity {
                     if (ifNumberExistsinPhoneBook) {
                         mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).child(phoneNumber)
                                 .child(CHAT_ID).addValueEventListener(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(DataSnapshot dataSnapshot) {
-                                        String value = dataSnapshot.getValue(String.class);
-                                        if (TextUtils.isEmpty(value)) {
-                                            // save contact in firebase database
-                                            // set the chat id against this contact to null
-                                            mDatabaseRef.child(USERS).child(mUserPhoneNumber)
-                                                    .child(CONTACTS).child(phoneNumber).child(CHAT_ID).setValue("");
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                String value = dataSnapshot.getValue(String.class);
+                                if (TextUtils.isEmpty(value)) {
+                                    // save contact in firebase database
+                                    // set the chat id against this contact to null
+                                    mDatabaseRef.child(USERS).child(mUserPhoneNumber)
+                                            .child(CONTACTS).child(phoneNumber).child(CHAT_ID).setValue("");
 
-                                        }
-                                    }
+                                    mDatabaseRef.child(USERS).child(mUserPhoneNumber)
+                                            .child(CONTACTS).child(phoneNumber).child(MEDIA_SHARED).setValue("");
 
-                                    @Override
-                                    public void onCancelled(DatabaseError databaseError) {
+                                }
+                            }
 
-                                    }
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
 
-                                });
+                            }
+
+                        });
                     }
                 }
             }
@@ -159,7 +166,9 @@ public class MainActivity extends AppCompatActivity {
         } else {
             attachDatabaseReadListener();
         }
+
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,

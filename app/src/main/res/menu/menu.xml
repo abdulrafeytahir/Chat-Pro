@@ -9,7 +9,7 @@
         android:title="forward"
         />
 
-    <item android:id="@+id/cmenu_del"
+    <item android:id="@+id/delete_message"
         android:icon="@drawable/delete_icon"
         android:title="delete"
         android:showAsAction="always"/>

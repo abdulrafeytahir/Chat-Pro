@@ -1,8 +1,13 @@
 package com.wartech.chatpro;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -15,7 +20,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -33,23 +37,24 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-import com.wartech.chatpro.sync.ReminderUtilities;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
-import static android.R.attr.mode;
-import static android.R.attr.x;
+import android.Manifest;
+
 import static com.wartech.chatpro.ChatProConstants.CHATS;
 import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
 import static com.wartech.chatpro.ChatProConstants.CHAT_PHOTOS;
 import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.IS_DELETE_FOR_RECEIVER;
+import static com.wartech.chatpro.ChatProConstants.IS_DELETE_FOR_SENDER;
 import static com.wartech.chatpro.ChatProConstants.LATEST_MESSAGE;
 import static com.wartech.chatpro.ChatProConstants.USERNAME;
 import static com.wartech.chatpro.ChatProConstants.USERS;
 import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
+import static com.wartech.chatpro.ContactActivity.clickedFlag;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
 
@@ -58,14 +63,16 @@ public class ChatActivity extends AppCompatActivity {
     private static final String TAG = "Chats";
 
     public static final int DEFAULT_MSG_LENGTH_LIMIT = 200;
+    private static final int MY_PERMISSIONS_REQUEST_SHARE_EXTERNAL = 101;
     private static final int RC_PHOTO_PICKER = 2;
     private String contactPhoneNumber;
 
     private ChatAdapter mMessageAdapter;
+    private ListView mMessageListView;
     private EditText mMessageEditText;
     private Button mSendButton;
 
-    private String mUsername;
+    public static String mUsername;
     private String mTime = null;
     private String mChatId;
 
@@ -75,7 +82,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private Menu menuu;
     Integer counter = new Integer(0);
-    private ArrayList<String> deleteMessages = new ArrayList<>();
+    public static ArrayList<ChatMessage> selectedMessages;
+    private int sdk = android.os.Build.VERSION.SDK_INT;
+    private static int pos_index = 0;
 
     public ChatActivity() {
     }
@@ -87,6 +96,8 @@ public class ChatActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         setTitle(intent.getStringExtra("contactName"));
+
+        selectedMessages = new ArrayList<>();
 
         if (intent.hasExtra("phoneNumber")) {
             contactPhoneNumber = intent.getStringExtra("phoneNumber");
@@ -102,7 +113,7 @@ public class ChatActivity extends AppCompatActivity {
         // get username
         getUserName();
 
-        final ListView mMessageListView = findViewById(R.id.messageListView);
+        mMessageListView = findViewById(R.id.messageListView);
         ImageButton mPhotoPickerButton = findViewById(R.id.photoPickerButton);
         mMessageEditText = findViewById(R.id.messageEditText);
         mSendButton = findViewById(R.id.sendButton);
@@ -117,13 +128,13 @@ public class ChatActivity extends AppCompatActivity {
         mMessageListView.setMultiChoiceModeListener(new AbsListView.MultiChoiceModeListener() {
             @Override
             public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
-                ArrayList<Integer> positions = new ArrayList<Integer>();
                 if (mMessageListView.isItemChecked(position)) {
-                    positions.add(position);
+                    selectedMessages.add(mMessageAdapter.getItem(position));
                     counter = counter + 1;
 
                 } else {
                     counter = counter - 1;
+                    selectedMessages.remove(position);
                 }
 
 
@@ -133,15 +144,16 @@ public class ChatActivity extends AppCompatActivity {
                     MenuInflater Mymenu2 = mode.getMenuInflater();
                     Mymenu2.inflate(R.menu.menu, menuu);
 
-
-                } else if (counter == 1) {
+                }
+                if (counter == 1) {
                     boolean isPhoto = mMessageAdapter.getItem(position).getPhotoUrl() != null;
                     boolean isText = mMessageAdapter.getItem(position).getText() != null;
                     if (isPhoto) {
                         menuu.clear();
                         MenuInflater Mymenu2 = mode.getMenuInflater();
                         Mymenu2.inflate(R.menu.imageselected, menuu);
-                    } else if(isText){
+                    }
+                    if (isText) {
                         menuu.clear();
                         MenuInflater Mymenu2 = mode.getMenuInflater();
                         Mymenu2.inflate(R.menu.singletextselect, menuu);
@@ -149,9 +161,7 @@ public class ChatActivity extends AppCompatActivity {
 
                 }
 
-                deleteMessages.add(friendlyMessages.get(position).getMessageID());
                 mode.setTitle(counter.toString());
-
 
             }
 
@@ -163,29 +173,37 @@ public class ChatActivity extends AppCompatActivity {
                 menuu = menu;
 
                 return true;
-
-
             }
 
             @Override
             public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-                return false;
+                menu.clear();
+                MenuInflater inflater = getMenuInflater();
+                inflater.inflate(R.menu.main_menu, menu);
+
+                return ChatActivity.super.onPrepareOptionsMenu(menu);
             }
 
             @Override
             public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
                 switch (item.getItemId()) {
-                    case R.id.cmenu_forward:
-//                        Intent i = new Intent(ChatActivity.this, Settings.class);
-//                        startActivity(i);
-                        Toast.makeText(ChatActivity.this, "Forward", Toast.LENGTH_SHORT).show();
+                    case R.id.menu_forward:
+                        Intent i = new Intent(ChatActivity.this, ContactActivity.class);
+                        i.putExtra("isComingFromChatActivity", "1");
+                        startActivity(i);
 
                         break;
-                    case R.id.cmenu_del:
-
-                        Toast.makeText(ChatActivity.this, "Delete", Toast.LENGTH_SHORT).show();
+                    case R.id.delete_message:
+                        deleteMessages();
+                        mode.getMenu().clear();
+                        counter = 0;
                         break;
 
+                    case R.id.cmenu_copy:
+                        copyToClipBoard();
+
+                    case R.id.cmenu_share_ext_image:
+                        getShareExternalPermission();
                     default:
                         break;
                 }
@@ -247,6 +265,32 @@ public class ChatActivity extends AppCompatActivity {
 
     }
 
+    private void copyToClipBoard() {
+
+        String CopyText = mMessageAdapter.getItem(pos_index).getText();
+
+        if (CopyText.length() != 0) {
+            if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
+
+                android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setText(CopyText);
+                Toast.makeText(getApplicationContext(), "Text Copied to Clipboard", Toast.LENGTH_SHORT).show();
+
+            } else {
+                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Clip", CopyText);
+                Toast.makeText(getApplicationContext(), "Text Copied to Clipboard", Toast.LENGTH_SHORT).show();
+                clipboard.setPrimaryClip(clip);
+            }
+        } else {
+            Toast.makeText(getApplicationContext(), "Nothing to Copy", Toast.LENGTH_SHORT).show();
+
+        }
+
+
+    }
+
+
     public void setChatKeyAndSendMessage() {
         DatabaseReference reference = mDatabaseRef.child(USERS).child(mUserPhoneNumber)
                 .child(CONTACTS).child(contactPhoneNumber).child(CHAT_ID);
@@ -272,9 +316,9 @@ public class ChatActivity extends AppCompatActivity {
 
                 mTime = getTime();
                 // setup a friendly message object and push it to the DB
-                String messageID = mDatabaseRef.child(CHATS).child(mChatId).push().getKey();
                 String message = mMessageEditText.getText().toString();
-                ChatMessage friendlyMessage = new ChatMessage(messageID, message, mUsername, null, mTime);
+                String messageID = mDatabaseRef.child(CHATS).child(mChatId).push().getKey();
+                ChatMessage friendlyMessage = new ChatMessage(messageID, message, mUsername, null, mTime, "", "");
                 mDatabaseRef.child(CHATS).child(mChatId).child(messageID).setValue(friendlyMessage);
 
                 mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).child(contactPhoneNumber)
@@ -339,9 +383,10 @@ public class ChatActivity extends AppCompatActivity {
                             Uri downloadUrl = taskSnapshot.getDownloadUrl();
                             Log.d(TAG, "photo added: " + downloadUrl);
                             assert downloadUrl != null;
-                            ChatMessage friendlyMessage =
-                                    new ChatMessage(null, mUsername, downloadUrl.toString(), mTime);
-                            mDatabaseRef.child("chats").child(mChatId).push().setValue(friendlyMessage);
+                            String messageID = mDatabaseRef.child(CHATS).child(mChatId).push().getKey();
+                            ChatMessage friendlyMessage = new ChatMessage(messageID, null, mUsername,
+                                    downloadUrl.toString(), mTime, "", "");
+                            mDatabaseRef.child(CHATS).child(mChatId).child(messageID).setValue(friendlyMessage);
                             mMessageAdapter.add(friendlyMessage);
                         }
                     });
@@ -357,7 +402,17 @@ public class ChatActivity extends AppCompatActivity {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     ChatMessage message = dataSnapshot.getValue(ChatMessage.class);
-                    mMessageAdapter.add(message);
+                    if (message.getSenderName().equals(mUsername)) {
+                        Log.d(TAG, mUsername + ", " + message.getSenderName() + ", " + message.isDeleteForSender());
+                        if (TextUtils.isEmpty(message.isDeleteForSender())) {
+                            mMessageAdapter.add(message);
+                        }
+                    } else {
+                        if (TextUtils.isEmpty(message.isDeleteForReceiver())) {
+                            mMessageAdapter.add(message);
+                        }
+                    }
+
                 }
 
                 @Override
@@ -411,7 +466,7 @@ public class ChatActivity extends AppCompatActivity {
             mDatabaseRef.child(CHATS).child(mChatId).removeEventListener(mChildEventListener);
             mChildEventListener = null;
         }
-        //  ReminderUtilities.scheduleChatReminder(ChatActivity.this);
+        // ReminderUtilities.scheduleChatReminder(ChatActivity.this);
     }
 
     @Override
@@ -444,4 +499,99 @@ public class ChatActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.clear();
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void deleteMessages() {
+        for (int i = 0; i < selectedMessages.size(); i++) {
+            Log.d(TAG, "position size " + selectedMessages.size());
+            ChatMessage message = selectedMessages.get(i);
+            String messageID = message.getMesssage_id();
+            if (message.getSenderName().equals(mUsername)) {
+                mDatabaseRef.child(CHATS).child(mChatId).child(messageID).child(IS_DELETE_FOR_SENDER).setValue("true");
+            } else {
+                mDatabaseRef.child(CHATS).child(mChatId).child(messageID).child(IS_DELETE_FOR_RECEIVER).setValue("true");
+            }
+            counter--;
+        }
+        if (counter == 0) {
+            Toast.makeText(ChatActivity.this, "Messages Deleted", Toast.LENGTH_SHORT).show();
+        }
+        for (int i = 0; i < selectedMessages.size(); i++) {
+            mMessageAdapter.remove(selectedMessages.get(i));
+        }
+        for (int i = 0; i < selectedMessages.size(); i++) {
+            selectedMessages.remove(i);
+        }
+    }
+
+    private void getShareExternalPermission() {
+        if (ContextCompat.checkSelfPermission(ChatActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission
+                (ChatActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                            android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    MY_PERMISSIONS_REQUEST_SHARE_EXTERNAL);
+
+
+        } else {
+            shareImagesExternal();
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_SHARE_EXTERNAL: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    shareImagesExternal();
+                }
+
+            }
+        }
+
+    }
+
+    private void shareImagesExternal() {
+        for (int i = 0; i < selectedMessages.size(); i++) {
+            if (!TextUtils.isEmpty(selectedMessages.get(i).getPhotoUrl())) {
+                Uri bmpUri = Uri.parse(selectedMessages.get(i).getPhotoUrl());
+                // Construct a ShareIntent with link to image
+                Intent shareIntent = new Intent();
+                shareIntent.setAction(Intent.ACTION_SEND);
+                shareIntent.putExtra(Intent.EXTRA_STREAM, bmpUri);
+                shareIntent.setType("image/*");
+                // Launch sharing dialog for image
+                startActivity(Intent.createChooser(shareIntent, "Share Image"));
+
+            } else {
+                Toast.makeText(this, "Failed to share Image", Toast.LENGTH_SHORT).show();
+            }
+
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (clickedFlag) {
+            clickedFlag = false;
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+        }
+    }
 }

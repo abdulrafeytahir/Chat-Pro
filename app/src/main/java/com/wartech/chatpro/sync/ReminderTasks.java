@@ -12,6 +12,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.wartech.chatpro.ChatMessage;
 
+import static com.wartech.chatpro.ChatProConstants.CONTACTS;
+import static com.wartech.chatpro.ChatProConstants.USERS;
 import static com.wartech.chatpro.SignupActivity.mUserPhoneNumber;
 
 
@@ -29,7 +31,7 @@ public class ReminderTasks {
 
         if (ACTION_CHAT_REMINDER.equals(action)) {
             mDatabaseRef = FirebaseDatabase.getInstance().getReference();
-            mDatabaseRef.child("users").child(mUserPhoneNumber).child("contacts").addChildEventListener(new ChildEventListener() {
+            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     final String contactNumber = dataSnapshot.getKey();
@@ -44,6 +46,7 @@ public class ReminderTasks {
                                     if (!mUserPhoneNumber.equals(contactNumber)) {
                                         Log.d(TAG, "notification sent to: " + contactNumber + " by " + mUserPhoneNumber);
                                         ChatMessage friendlyMessage = dataSnapshot.getValue(ChatMessage.class);
+
                                         NotificationUtils.chatReminder(context, friendlyMessage.getSenderName(),
                                                 contactNumber, friendlyMessage.getText());
                                     }

@@ -43,6 +43,11 @@ public class ChatProConstants {
 
     public static final String LATEST_MESSAGE = "latest_message";
 
+    public static final String IS_DELETE_FOR_SENDER = "deleteForSender";
 
+    public static final String IS_DELETE_FOR_RECEIVER = "deleteForReceiver";
 
+    public static final String CHAT_MESSAGES = "chat_messages";
+
+    public static final String MEDIA_SHARED = "media_shared";
 }
