@@ -75,17 +75,6 @@ public class ChatFragment extends Fragment {
         // attach contacts adapter to list view to display contacts
         listView.setAdapter(chatFragmentAdapter);
 
-        // initiate chat with friend by clicking on active chat item
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Intent intent = new Intent(getContext(), ChatActivity.class);
-                intent.putExtra("contactName", chatFragmentAdapter.getItem(i).getmName());
-                intent.putExtra("phoneNumber", chatFragmentAdapter.getItem(i).getmPhoneNumber());
-                startActivity(intent);
-            }
-        });
-
         // initiate new chat by clicking on floating action button
         FloatingActionButton chatActionButton = rootView.findViewById(R.id.chatActionButton);
         chatActionButton.setVisibility(View.VISIBLE);

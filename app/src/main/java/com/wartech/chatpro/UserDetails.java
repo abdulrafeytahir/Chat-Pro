@@ -111,7 +111,7 @@ public class UserDetails extends AppCompatActivity {
     }
 
     private void selectImage() {
-        final CharSequence[] items = { "Take Photo", "Choose from Gallery","Remove Photo",
+        final CharSequence[] items = {"Choose from Gallery","Remove Photo",
                 "Cancel" };
 
         AlertDialog.Builder builder = new AlertDialog.Builder(UserDetails.this);

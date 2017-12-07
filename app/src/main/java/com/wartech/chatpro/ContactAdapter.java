@@ -26,7 +26,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable {
 
-    private TextView nameTextView, phoneTextView;
+    private TextView nameTextView, statusTextView;
     private CircleImageView profilePicImageView;
     private Context context;
     private ArrayList<Contact> contactsList;
@@ -75,7 +75,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
 
         }
         nameTextView = convertView.findViewById(R.id.contactNameTextView);
-        phoneTextView = convertView.findViewById(R.id.contactPhoneNumberTextView);
+        statusTextView = convertView.findViewById(R.id.contactPhoneNumberTextView);
 
         if (!TextUtils.isEmpty(contactsList.get(position).getImageURL())) {
             profilePicImageView = convertView.findViewById(R.id.profilePicImageView);
@@ -87,7 +87,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
 
         if (filterText != null) {
 
-            String itemValue = contactsList.get(position).getPhoneNumber();
+            String itemValue = contactsList.get(position).getmStatus();
             int startPos = itemValue.toLowerCase(Locale.US).indexOf(filterText.toLowerCase(Locale.US));
             int endPos = startPos + filterText.length();
 
@@ -99,7 +99,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
                 TextAppearanceSpan highlightSpan = new TextAppearanceSpan(null, Typeface.BOLD, -1, blueColor, null);
 
                 spannable.setSpan(highlightSpan, startPos, endPos, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                phoneTextView.setText(spannable);
+                statusTextView.setText(spannable);
 
                 if (!flag2) {
                     nameTextView.setText(contactsList.get(position).getName());
@@ -126,7 +126,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
                 nameTextView.setText(spannable);
 
                 if (!flag) {
-                    phoneTextView.setText(contactsList.get(position).getPhoneNumber());
+                    statusTextView.setText(contactsList.get(position).getmStatus());
                     flag = true;
                 }
 
@@ -137,7 +137,7 @@ public class ContactAdapter extends ArrayAdapter<Contact> implements Filterable 
             }
 
         } else {
-            phoneTextView.setText(contactsList.get(position).getPhoneNumber());
+            statusTextView.setText(contactsList.get(position).getmStatus());
             nameTextView.setText(contactsList.get(position).getName());
         }
 

@@ -3,11 +3,16 @@ package com.wartech.chatpro;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -15,6 +20,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.ActionMode;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -25,6 +31,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -37,12 +44,16 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
 import android.Manifest;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 import static com.wartech.chatpro.ChatProConstants.CHATS;
 import static com.wartech.chatpro.ChatProConstants.CHAT_ID;
@@ -51,6 +62,7 @@ import static com.wartech.chatpro.ChatProConstants.CONTACTS;
 import static com.wartech.chatpro.ChatProConstants.IS_DELETE_FOR_RECEIVER;
 import static com.wartech.chatpro.ChatProConstants.IS_DELETE_FOR_SENDER;
 import static com.wartech.chatpro.ChatProConstants.LATEST_MESSAGE;
+import static com.wartech.chatpro.ChatProConstants.MEDIA_SHARED;
 import static com.wartech.chatpro.ChatProConstants.USERNAME;
 import static com.wartech.chatpro.ChatProConstants.USERS;
 import static com.wartech.chatpro.ChatProConstants.USER_DETAILS;
@@ -62,10 +74,11 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final String TAG = "Chats";
 
+    private boolean deleteButoonPressed = false;
     public static final int DEFAULT_MSG_LENGTH_LIMIT = 200;
     private static final int MY_PERMISSIONS_REQUEST_SHARE_EXTERNAL = 101;
     private static final int RC_PHOTO_PICKER = 2;
-    private String contactPhoneNumber;
+    public static String contactPhoneNumber;
 
     private ChatAdapter mMessageAdapter;
     private ListView mMessageListView;
@@ -95,7 +108,10 @@ public class ChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat);
 
         Intent intent = getIntent();
-        setTitle(intent.getStringExtra("contactName"));
+        ActionBar mActionBar = getSupportActionBar();
+        mActionBar.setTitle(intent.getStringExtra("contactName"));
+
+        // setChatActioBar(intent.getStringExtra("contactName"), intent.getStringExtra("contactImage"));
 
         selectedMessages = new ArrayList<>();
 
@@ -129,12 +145,16 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
                 if (mMessageListView.isItemChecked(position)) {
+                    pos_index = position;
                     selectedMessages.add(mMessageAdapter.getItem(position));
                     counter = counter + 1;
 
                 } else {
                     counter = counter - 1;
-                    selectedMessages.remove(position);
+                    if(deleteButoonPressed){
+                        deleteButoonPressed = false;
+                        selectedMessages.remove(position);
+                    }
                 }
 
 
@@ -193,14 +213,24 @@ public class ChatActivity extends AppCompatActivity {
                         startActivity(i);
 
                         break;
+
                     case R.id.delete_message:
                         deleteMessages();
                         mode.getMenu().clear();
+                        deleteButoonPressed = true;
+                        mMessageListView.setChoiceMode(AbsListView.CHOICE_MODE_NONE);
+                        mMessageListView.setBackgroundColor(Color.WHITE);
+                        mMessageListView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE_MODAL);
                         counter = 0;
+                        Toast.makeText(ChatActivity.this, "Messages Deleted", Toast.LENGTH_SHORT).show();
                         break;
 
                     case R.id.cmenu_copy:
                         copyToClipBoard();
+                        mMessageListView.setChoiceMode(AbsListView.CHOICE_MODE_NONE);
+                        mMessageListView.setBackgroundColor(Color.WHITE);
+                        mMessageListView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE_MODAL);
+                        break;
 
                     case R.id.cmenu_share_ext_image:
                         getShareExternalPermission();
@@ -262,6 +292,27 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         attachMessageReadListener();
+
+    }
+
+    private void setChatActioBar(String contactName, String contactImage) {
+        ActionBar mActionBar = getSupportActionBar();
+        mActionBar.setDisplayShowHomeEnabled(false);
+        mActionBar.setDisplayShowTitleEnabled(false);
+
+        Log.d(TAG, contactName + " " + contactImage);
+        CircleImageView actionBarImageView = (CircleImageView) findViewById(R.id.action_bar_icon);
+        TextView actionBarTitle = (TextView) findViewById(R.id.title_text);
+        actionBarTitle.setText(contactName);
+        Picasso.with(this)
+                .load(contactImage)
+                .into(actionBarImageView);
+
+        LayoutInflater mInflater = LayoutInflater.from(this);
+        View mCustomView = mInflater.inflate(R.layout.chat_action_bar_layout, null);
+
+        mActionBar.setCustomView(mCustomView);
+        mActionBar.setDisplayShowCustomEnabled(true);
 
     }
 
@@ -369,7 +420,7 @@ public class ChatActivity extends AppCompatActivity {
 
     // on activity result method for when user picks a photo
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RC_PHOTO_PICKER && resultCode == RESULT_OK) {
             Uri selectedImageUri = data.getData();
@@ -380,7 +431,7 @@ public class ChatActivity extends AppCompatActivity {
                     (this, new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            Uri downloadUrl = taskSnapshot.getDownloadUrl();
+                            final Uri downloadUrl = taskSnapshot.getDownloadUrl();
                             Log.d(TAG, "photo added: " + downloadUrl);
                             assert downloadUrl != null;
                             String messageID = mDatabaseRef.child(CHATS).child(mChatId).push().getKey();
@@ -388,6 +439,11 @@ public class ChatActivity extends AppCompatActivity {
                                     downloadUrl.toString(), mTime, "", "");
                             mDatabaseRef.child(CHATS).child(mChatId).child(messageID).setValue(friendlyMessage);
                             mMessageAdapter.add(friendlyMessage);
+
+                            // adding media shared
+                            mDatabaseRef.child(USERS).child(mUserPhoneNumber).child(CONTACTS).child(contactPhoneNumber)
+                                    .child(MEDIA_SHARED).push().setValue(downloadUrl.toString());
+
                         }
                     });
         }

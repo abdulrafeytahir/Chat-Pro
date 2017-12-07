@@ -1,6 +1,7 @@
 package com.wartech.chatpro;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -14,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Filter;
 import android.widget.Filterable;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -23,6 +25,11 @@ import java.util.List;
 import java.util.Locale;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+
+import static com.wartech.chatpro.ChatProConstants.PHONE_NUMBER;
+import static com.wartech.chatpro.ChatProConstants.PROFILE_PIC_URI;
+import static com.wartech.chatpro.ChatProConstants.STATUS;
+import static com.wartech.chatpro.ChatProConstants.USERNAME;
 
 
 public class ChatFragmentAdapter extends ArrayAdapter<chatFragmentContact> implements Filterable {
@@ -69,7 +76,7 @@ public class ChatFragmentAdapter extends ArrayAdapter<chatFragmentContact> imple
 
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, View convertView, ViewGroup parent) {
 
         LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (convertView == null) {
@@ -79,13 +86,38 @@ public class ChatFragmentAdapter extends ArrayAdapter<chatFragmentContact> imple
         nameTextView = convertView.findViewById(R.id.chatNameTextView);
         messageTextView = convertView.findViewById(R.id.chatMessageTextView);
 
+        profilePicImageView = convertView.findViewById(R.id.profilePicImageView);
         if (!TextUtils.isEmpty(contactsList.get(position).getmImageURL())) {
-            profilePicImageView = convertView.findViewById(R.id.profilePicImageView);
             Picasso.with(profilePicImageView.getContext())
                     .load(contactsList.get(position).getmImageURL())
                     .into(profilePicImageView);
 
         }
+
+        profilePicImageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getContext(), DisplayContactDetailsActivity.class);
+                intent.putExtra(USERNAME, contactsList.get(position).getmName());
+                intent.putExtra(PHONE_NUMBER, contactsList.get(position).getmPhoneNumber());
+                intent.putExtra(PROFILE_PIC_URI, contactsList.get(position).getmImageURL());
+                intent.putExtra(STATUS, contactsList.get(position).getmStatus());
+                getContext().startActivity(intent);
+            }
+        });
+
+        LinearLayout chatContact = convertView.findViewById(R.id.chat_contact);
+        chatContact.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getContext(), ChatActivity.class);
+                intent.putExtra("contactName", contactsList.get(position).getmName());
+                intent.putExtra("phoneNumber", contactsList.get(position).getmPhoneNumber());
+                intent.putExtra("contactImage", contactsList.get(position).getmImageURL());
+                getContext().startActivity(intent);
+            }
+        });
+
         TextView timeTextView = convertView.findViewById(R.id.chatTimeTextView);
         timeTextView.setText(contactsList.get(position).getmTime());
 

@@ -17,6 +17,7 @@
         android:src="@drawable/profile_pic" />
 
     <LinearLayout
+        android:id="@+id/chat_contact"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"

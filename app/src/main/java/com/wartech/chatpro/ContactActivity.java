@@ -117,6 +117,7 @@ public class ContactActivity extends AppCompatActivity {
                     Intent intent = new Intent(ContactActivity.this, ChatActivity.class);
                     intent.putExtra("contactName", contact.getName());
                     intent.putExtra("phoneNumber", contact.getPhoneNumber());
+                    intent.putExtra("contactImage", contact.getImageURL());
                     startActivity(intent);
                 }
             });
@@ -135,6 +136,7 @@ public class ContactActivity extends AppCompatActivity {
                     Intent intent = new Intent(ContactActivity.this, ChatActivity.class);
                     intent.putExtra("contactName", contact.getName());
                     intent.putExtra("phoneNumber", contact.getPhoneNumber());
+                    intent.putExtra("contactImage", contact.getImageURL());
                     startActivity(intent);
                 }
             });

@@ -82,9 +82,6 @@ public class MainActivity extends AppCompatActivity {
                                     mDatabaseRef.child(USERS).child(mUserPhoneNumber)
                                             .child(CONTACTS).child(phoneNumber).child(CHAT_ID).setValue("");
 
-                                    mDatabaseRef.child(USERS).child(mUserPhoneNumber)
-                                            .child(CONTACTS).child(phoneNumber).child(MEDIA_SHARED).setValue("");
-
                                 }
                             }
 
